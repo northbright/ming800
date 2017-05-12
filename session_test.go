@@ -34,6 +34,8 @@ func Example() {
 	var currentDir, configFile string
 	var s *ming800.Session
 	var config Config
+	var names = []string{"Emma", "王", "张"}
+	var ids []string
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
 	configFile = path.Join(currentDir, "config.json")
@@ -62,6 +64,19 @@ func Example() {
 	}
 
 	log.Printf("login() successfully.\n")
+
+	// Search
+	// 1. Search student by name.
+	for _, name := range names {
+		log.Printf("SearchStudentByName(%v) starting...\n", name)
+
+		if ids, err = s.SearchStudentByName(name); err != nil {
+			log.Printf("error: %v\n", name, err)
+			goto end
+		}
+
+		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
+	}
 
 	// Logout
 	if err = s.Logout(); err != nil {
