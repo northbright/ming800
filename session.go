@@ -8,8 +8,8 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	//"path"
-	"strings"
 	//"regexp"
+	"strings"
 )
 
 type Session struct {
@@ -21,14 +21,19 @@ type Session struct {
 	jar       *cookiejar.Jar
 	client    *http.Client
 	LoggedIn  bool
+	// uls contains *url.URL of actions.
+	urls map[string]*url.URL
 }
 
 var (
-	loginActionURL    = "/j_spring_security_check"
-	loginRedirectURL  = "/standard/mainController.controller"
-	logoutActionURL   = "/j_spring_security_logout"
-	logoutRedirectURL = "/index.jsp"
-	mainControllerURL = "/standard/mainController.controller"
+	// rawurls contains actions' raw URLs.
+	rawurls = map[string]string{
+		"login":           "/j_spring_security_check",
+		"loginRedirect":   "/standard/mainController.controller",
+		"logout":          "/j_spring_security_logout",
+		"mainControlloer": "/standard/mainController.controller",
+		"studentSearch":   "/edu/student/search.action",
+	}
 )
 
 func NewSession(serverURL, company, user, password string) (s *Session, err error) {
@@ -40,11 +45,18 @@ func NewSession(serverURL, company, user, password string) (s *Session, err erro
 		goto end
 	}
 
+	s.urls = map[string]*url.URL{}
+	for k, v := range rawurls {
+		u, _ := url.Parse(v)
+		s.urls[k] = s.baseURL.ResolveReference(u)
+	}
+
 	if jar, err = cookiejar.New(nil); err != nil {
 		goto end
 	}
 
 	s.client = &http.Client{Jar: jar}
+
 end:
 	return s, err
 }
@@ -53,15 +65,7 @@ func (s *Session) Login() (err error) {
 	var req *http.Request
 	var resp *http.Response
 	var v url.Values = url.Values{}
-	var loginURL *url.URL
-	var loginURLStr string
 	var respCookies []*http.Cookie
-
-	if loginURL, err = url.Parse(loginActionURL); err != nil {
-		goto end
-	}
-
-	loginURLStr = s.baseURL.ResolveReference(loginURL).String()
 
 	// Login.
 	v.Set("dispatcher", "bpm")
@@ -71,7 +75,7 @@ func (s *Session) Login() (err error) {
 	v.Set("j_password", s.Password)
 	v.Set("button", "登录")
 
-	if req, err = http.NewRequest("POST", loginURLStr, strings.NewReader(v.Encode())); err != nil {
+	if req, err = http.NewRequest("POST", s.urls["login"].String(), strings.NewReader(v.Encode())); err != nil {
 		goto end
 	}
 
@@ -83,7 +87,7 @@ func (s *Session) Login() (err error) {
 	}
 	defer resp.Body.Close()
 
-	if !strings.HasSuffix(resp.Header.Get("Location"), loginRedirectURL) {
+	if !strings.HasSuffix(resp.Header.Get("Location"), rawurls["loginRedirect"]) {
 		err = fmt.Errorf("Login redirect URL does not match. Login failed(user name and password do not match.")
 		goto end
 	}
@@ -105,19 +109,12 @@ end:
 func (s *Session) Logout() (err error) {
 	var req *http.Request
 	var resp *http.Response
-	var logoutURL *url.URL
-	var logoutURLStr string
 
 	if !s.LoggedIn {
 		goto end
 	}
 
-	if logoutURL, err = url.Parse(logoutActionURL); err != nil {
-		goto end
-	}
-
-	logoutURLStr = s.baseURL.ResolveReference(logoutURL).String()
-	if req, err = http.NewRequest("GET", logoutURLStr, nil); err != nil {
+	if req, err = http.NewRequest("GET", s.urls["logout"].String(), nil); err != nil {
 		goto end
 	}
 
