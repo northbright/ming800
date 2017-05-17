@@ -28,11 +28,12 @@ type Session struct {
 var (
 	// rawurls contains actions' raw URLs.
 	rawurls = map[string]string{
-		"login":           "/j_spring_security_check",
-		"loginRedirect":   "/standard/mainController.controller",
-		"logout":          "/j_spring_security_logout",
-		"mainControlloer": "/standard/mainController.controller",
-		"studentSearch":   "/edu/student/search.action",
+		"login":                "/j_spring_security_check",
+		"loginRedirect":        "/standard/mainController.controller",
+		"logout":               "/j_spring_security_logout",
+		"mainControlloer":      "/standard/mainController.controller",
+		"studentSearch":        "/edu/student/search.action",
+		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
 	}
 )
 
