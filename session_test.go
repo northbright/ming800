@@ -35,6 +35,7 @@ func Example() {
 	var s *ming800.Session
 	var config Config
 	var names = []string{"Emma", "王", "张"}
+	var phoneNums = []string{"135", "136", "138"}
 	var ids []string
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
@@ -72,6 +73,18 @@ func Example() {
 
 		if ids, err = s.SearchStudentByName(name); err != nil {
 			log.Printf("error: %v\n", name, err)
+			goto end
+		}
+
+		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
+	}
+
+	// 2. Search student by name.
+	for _, phoneNum := range phoneNums {
+		log.Printf("SearchStudentByPhoneNumber(%v) starting...\n", phoneNum)
+
+		if ids, err = s.SearchStudentByPhoneNumber(phoneNum); err != nil {
+			log.Printf("error: %v\n", phoneNum, err)
 			goto end
 		}
 

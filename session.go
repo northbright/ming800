@@ -134,7 +134,7 @@ end:
 	return err
 }
 
-func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
+func (s *Session) SearchStudent(searchBy, value string) (ids []string, err error) {
 	var req *http.Request
 	var resp *http.Response
 	var v url.Values = url.Values{}
@@ -146,8 +146,8 @@ func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 
 	ids = []string{}
 
-	if name == "" {
-		err = fmt.Errorf("Empty name.")
+	if value == "" {
+		err = fmt.Errorf("Empty search value.")
 		goto end
 	}
 
@@ -159,11 +159,10 @@ func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 	v.Set("searchName", "")
 	v.Set("studentTraining.id", "")
 	v.Set("action", "search")
-	v.Set("searchBy", "byName")
-	v.Set("searchValue", name)
+	v.Set("searchBy", searchBy)
+	v.Set("searchValue", value)
 	v.Set("pageEntity.pageRecords", "20")
 	v.Set("dispatcher", "search")
-	v.Set("student.name", name)
 	v.Set("studentTrainingName", "")
 
 	if req, err = http.NewRequest("POST", s.urls["studentSearch"].String(), strings.NewReader(v.Encode())); err != nil {
@@ -193,4 +192,12 @@ func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 
 end:
 	return ids, err
+}
+
+func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
+	return s.SearchStudent("byName", name)
+}
+
+func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, err error) {
+	return s.SearchStudent("byEmail", phoneNumber)
 }
