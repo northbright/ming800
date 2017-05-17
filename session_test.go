@@ -72,11 +72,21 @@ func Example() {
 		log.Printf("SearchStudentByName(%v) starting...\n", name)
 
 		if ids, err = s.SearchStudentByName(name); err != nil {
-			log.Printf("error: %v\n", name, err)
+			log.Printf("error: %v\n", err)
 			goto end
 		}
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
+
+		log.Printf("Get students starting...\n")
+		for _, id := range ids {
+			var student *ming800.Student
+			if student, err = s.GetStudent(id); err != nil {
+				log.Printf("error: %v\n", err)
+				goto end
+			}
+			log.Printf("student: %v\n", student)
+		}
 	}
 
 	// 2. Search student by name.
@@ -84,11 +94,21 @@ func Example() {
 		log.Printf("SearchStudentByPhoneNumber(%v) starting...\n", phoneNum)
 
 		if ids, err = s.SearchStudentByPhoneNumber(phoneNum); err != nil {
-			log.Printf("error: %v\n", phoneNum, err)
+			log.Printf("error: %v\n", err)
 			goto end
 		}
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
+
+		log.Printf("Get students starting...\n")
+		for _, id := range ids {
+			var student *ming800.Student
+			if student, err = s.GetStudent(id); err != nil {
+				log.Printf("error: %v\n", err)
+				goto end
+			}
+			log.Printf("student: %v\n", student)
+		}
 	}
 
 	// Logout

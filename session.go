@@ -25,6 +25,16 @@ type Session struct {
 	urls map[string]*url.URL
 }
 
+type Student struct {
+	Name          string
+	SID           string
+	Status        string
+	Comments      string
+	PhoneNumber   string
+	ReceiptNumber string
+	Classes       []string
+}
+
 var (
 	// rawurls contains actions' raw URLs.
 	rawurls = map[string]string{
@@ -33,6 +43,7 @@ var (
 		"logout":               "/j_spring_security_logout",
 		"mainControlloer":      "/standard/mainController.controller",
 		"studentSearch":        "/edu/student/search.action",
+		"viewStudent":          "/edu/student/basicinfo/viewstudent.action",
 		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
 	}
 )
@@ -200,4 +211,72 @@ func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 
 func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, err error) {
 	return s.SearchStudent("byEmail", phoneNumber)
+}
+
+func getStudent(data string) (student *Student, err error) {
+	student = &Student{}
+
+	patterns := map[string]string{
+		"name":          `姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`,
+		"sid":           `学号\s*</td>\s*<td.*>\s*(.*?)\n`,
+		"status":        `审核状态\s*</td>\s*<td.*>\s*(.*?)\n`,
+		"comments":      `备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`,
+		"phoneNumber":   `电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`,
+		"receiptNumber": `发票号</td><td.*>(.*?)</td>`,
+	}
+
+	results := map[string]string{}
+
+	for k, v := range patterns {
+		re := regexp.MustCompile(v)
+		matched := re.FindStringSubmatch(data)
+		if len(matched) < 2 {
+			err = fmt.Errorf("No student info matched.")
+			goto end
+		}
+		results[k] = matched[1]
+	}
+
+	student.Name = results["name"]
+	student.SID = results["sid"]
+	student.Status = results["status"]
+	student.Comments = results["comments"]
+	student.PhoneNumber = results["phoneNumber"]
+	student.ReceiptNumber = results["receiptNumber"]
+
+end:
+	return student, err
+}
+
+func (s *Session) GetStudent(id string) (student *Student, err error) {
+	var req *http.Request
+	var resp *http.Response
+	var urlStr string
+	var data []byte
+
+	student = &Student{}
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	urlStr = fmt.Sprintf("%v?student.id=%v", s.urls["viewStudent"].String(), id)
+
+	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	student, err = getStudent(string(data))
+end:
+	return student, err
 }
