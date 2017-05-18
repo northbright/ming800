@@ -34,8 +34,8 @@ func Example() {
 	var currentDir, configFile string
 	var s *ming800.Session
 	var config Config
-	var names = []string{"Emma", "王", "张"}
-	var phoneNums = []string{"135", "136", "138"}
+	var names = []string{"Emma", "王"}
+	var phoneNums = []string{"135"}
 	var ids []string
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
@@ -78,14 +78,20 @@ func Example() {
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
 
+		// Get students.
 		log.Printf("Get students starting...\n")
+		m := map[string]*ming800.Student{}
 		for _, id := range ids {
 			var student *ming800.Student
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			log.Printf("student: %v\n", student)
+			m[id] = student
+		}
+
+		for _, v := range m {
+			log.Printf("%v, %v\n", v.Name, v.PhoneNumber)
 		}
 	}
 
@@ -100,14 +106,20 @@ func Example() {
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
 
+		// Get students.
 		log.Printf("Get students starting...\n")
+		m := map[string]*ming800.Student{}
 		for _, id := range ids {
 			var student *ming800.Student
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			log.Printf("student: %v\n", student)
+			m[id] = student
+		}
+
+		for _, v := range m {
+			log.Printf("%v, %v\n", v.Name, v.PhoneNumber)
 		}
 	}
 

@@ -216,33 +216,47 @@ func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, 
 func getStudent(data string) (student *Student, err error) {
 	student = &Student{}
 
-	patterns := map[string]string{
-		"name":          `姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`,
-		"sid":           `学号\s*</td>\s*<td.*>\s*(.*?)\n`,
-		"status":        `审核状态\s*</td>\s*<td.*>\s*(.*?)\n`,
-		"comments":      `备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`,
-		"phoneNumber":   `电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`,
-		"receiptNumber": `发票号</td><td.*>(.*?)</td>`,
+	arr := map[string]*struct {
+		pattern         string
+		matchedArrayLen int
+		matchedIndex    int
+		value           string
+	}{
+		"name":          {`姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`, 2, 1, ""},
+		"sid":           {`学号\s*</td>\s*<td.*>\s*(.*?)\n`, 2, 1, ""},
+		"status":        {`审核状态\s*</td>\s*<td.*>\s*(.*?)\n`, 2, 1, ""},
+		"comments":      {`备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`, 3, 1, ""},
+		"phoneNumber":   {`电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`, 2, 1, ""},
+		"receiptNumber": {`发票号</td><td.*>(.*?)</td>`, 2, 1, ""},
 	}
 
-	results := map[string]string{}
+	/*
+		patterns := map[string]string{
+			"name":          `姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`,
+			"sid":           `学号\s*</td>\s*<td.*>\s*(.*?)\n`,
+			"status":        `审核状态\s*</td>\s*<td.*>\s*(.*?)\n`,
+			"comments":      `备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`,
+			"phoneNumber":   `电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`,
+			"receiptNumber": `发票号</td><td.*>(.*?)</td>`,
+		}
+	*/
 
-	for k, v := range patterns {
-		re := regexp.MustCompile(v)
+	for k, v := range arr {
+		re := regexp.MustCompile(v.pattern)
 		matched := re.FindStringSubmatch(data)
-		if len(matched) < 2 {
+		if len(matched) != v.matchedArrayLen {
 			err = fmt.Errorf("No student info matched.")
 			goto end
 		}
-		results[k] = matched[1]
+		arr[k].value = matched[v.matchedIndex]
 	}
 
-	student.Name = results["name"]
-	student.SID = results["sid"]
-	student.Status = results["status"]
-	student.Comments = results["comments"]
-	student.PhoneNumber = results["phoneNumber"]
-	student.ReceiptNumber = results["receiptNumber"]
+	student.Name = arr["name"].value
+	student.SID = arr["sid"].value
+	student.Status = arr["status"].value
+	student.Comments = arr["comments"].value
+	student.PhoneNumber = arr["phoneNumber"].value
+	student.ReceiptNumber = arr["receiptNumber"].value
 
 end:
 	return student, err
