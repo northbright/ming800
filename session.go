@@ -2,6 +2,7 @@ package ming800
 
 import (
 	"fmt"
+	"html"
 	"io/ioutil"
 	//"log"
 	"net/http"
@@ -222,11 +223,11 @@ func getStudent(data string) (student *Student, err error) {
 		matchedIndex    int
 		value           string
 	}{
-		"name":          {`姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`, 2, 1, ""},
-		"sid":           {`学号\s*</td>\s*<td.*>\s*(.*?)\n`, 2, 1, ""},
-		"status":        {`审核状态\s*</td>\s*<td.*>\s*(.*?)\n`, 2, 1, ""},
+		"name":          {`姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\r\n`, 2, 1, ""},
+		"sid":           {`学号\s*</td>\s*<td.*>\s*(\S*?)\r\n`, 2, 1, ""},
+		"status":        {`审核状态\s*</td>\s*<td.*>\s*(\S?)\r\n`, 2, 1, ""},
 		"comments":      {`备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`, 3, 1, ""},
-		"phoneNumber":   {`电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`, 2, 1, ""},
+		"phoneNumber":   {`电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\r\n`, 2, 1, ""},
 		"receiptNumber": {`发票号</td><td.*>(.*?)</td>`, 2, 1, ""},
 	}
 
@@ -248,7 +249,7 @@ func getStudent(data string) (student *Student, err error) {
 			err = fmt.Errorf("No student info matched.")
 			goto end
 		}
-		arr[k].value = matched[v.matchedIndex]
+		arr[k].value = html.UnescapeString(matched[v.matchedIndex])
 	}
 
 	student.Name = arr["name"].value
@@ -267,6 +268,7 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 	var resp *http.Response
 	var urlStr string
 	var data []byte
+	var c *http.Client
 
 	student = &Student{}
 
@@ -281,7 +283,11 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 		goto end
 	}
 
-	if resp, err = s.client.Do(req); err != nil {
+	//if resp, err = s.client.Do(req); err != nil {
+	//	goto end
+	//}
+	c = &http.Client{Jar: s.client.Jar}
+	if resp, err = c.Do(req); err != nil {
 		goto end
 	}
 	defer resp.Body.Close()
@@ -291,6 +297,8 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 	}
 
 	student, err = getStudent(string(data))
+	//student.Name = "xx"
+	//student.PhoneNumber = "123456"
 end:
 	return student, err
 }

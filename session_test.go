@@ -80,18 +80,13 @@ func Example() {
 
 		// Get students.
 		log.Printf("Get students starting...\n")
-		m := map[string]*ming800.Student{}
 		for _, id := range ids {
-			var student *ming800.Student
+			student := &ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			m[id] = student
-		}
-
-		for _, v := range m {
-			log.Printf("%v, %v\n", v.Name, v.PhoneNumber)
+			log.Printf("Name: %v, PhoneNumber: %v\n", student.Name, student.PhoneNumber)
 		}
 	}
 
@@ -108,18 +103,13 @@ func Example() {
 
 		// Get students.
 		log.Printf("Get students starting...\n")
-		m := map[string]*ming800.Student{}
 		for _, id := range ids {
-			var student *ming800.Student
+			student := &ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			m[id] = student
-		}
-
-		for _, v := range m {
-			log.Printf("%v, %v\n", v.Name, v.PhoneNumber)
+			log.Printf("Name: %v, PhoneNumber: %v\n", student.Name, student.PhoneNumber)
 		}
 	}
 
