@@ -231,17 +231,6 @@ func getStudent(data string) (student *Student, err error) {
 		"receiptNumber": {`发票号</td><td.*>(.*?)</td>`, 2, 1, ""},
 	}
 
-	/*
-		patterns := map[string]string{
-			"name":          `姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\n`,
-			"sid":           `学号\s*</td>\s*<td.*>\s*(.*?)\n`,
-			"status":        `审核状态\s*</td>\s*<td.*>\s*(.*?)\n`,
-			"comments":      `备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`,
-			"phoneNumber":   `电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\n`,
-			"receiptNumber": `发票号</td><td.*>(.*?)</td>`,
-		}
-	*/
-
 	for k, v := range arr {
 		re := regexp.MustCompile(v.pattern)
 		matched := re.FindStringSubmatch(data)
