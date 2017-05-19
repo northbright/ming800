@@ -268,7 +268,6 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 	var resp *http.Response
 	var urlStr string
 	var data []byte
-	var c *http.Client
 
 	student = &Student{}
 
@@ -283,11 +282,7 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 		goto end
 	}
 
-	//if resp, err = s.client.Do(req); err != nil {
-	//	goto end
-	//}
-	c = &http.Client{Jar: s.client.Jar}
-	if resp, err = c.Do(req); err != nil {
+	if resp, err = s.client.Do(req); err != nil {
 		goto end
 	}
 	defer resp.Body.Close()
@@ -297,8 +292,6 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 	}
 
 	student, err = getStudent(string(data))
-	//student.Name = "xx"
-	//student.PhoneNumber = "123456"
 end:
 	return student, err
 }
