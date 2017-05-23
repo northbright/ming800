@@ -26,6 +26,15 @@ type Session struct {
 	urls map[string]*url.URL
 }
 
+type ClassEvent struct {
+	ClassInstanceId string
+	ClassId         string
+	ClassName       string
+	Status          string
+	BeginTime       string
+	EndTime         string
+}
+
 type Student struct {
 	Name          string
 	SID           string
@@ -33,7 +42,7 @@ type Student struct {
 	Comments      string
 	PhoneNumber   string
 	ReceiptNumber string
-	Classes       []string
+	ClassEvents   []ClassEvent
 }
 
 var (
@@ -214,9 +223,41 @@ func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, 
 	return s.SearchStudent("byEmail", phoneNumber)
 }
 
+func getClassEventsOfStudent(data string) (events []ClassEvent, err error) {
+	events = []ClassEvent{}
+	p := `viewClazzInstance\.action\?clazzInstance\.id=.*>(\s|.)*?</tr>`
+
+	re := regexp.MustCompile(p)
+	matched := re.FindAllStringSubmatch(data, -1)
+
+	p = `clazzInstance\.id=(\d+)(?:.*?)clazz\.id=(\d+).*>\s+(\S+)(?:\s|.)*?<td(?:\s|.)*?<td(?:\s|.)*?>\s*(\S+)\s*?(\d{4}-\d{2}-\d{2}).*\s*(\d{4}-\d{2}-\d{2})?`
+	re = regexp.MustCompile(p)
+	for _, m := range matched {
+		fmt.Printf("m[0]: %v\n", m[0])
+		subMatched := re.FindStringSubmatch(m[0])
+		if len(subMatched) != 7 {
+			err = fmt.Errorf("Parse class events error while using regexp. subMatched len = %v", len(subMatched))
+			goto end
+		}
+
+		e := ClassEvent{
+			ClassInstanceId: subMatched[1],
+			ClassId:         subMatched[2],
+			ClassName:       html.UnescapeString(subMatched[3]),
+			Status:          subMatched[4],
+			BeginTime:       subMatched[5],
+			EndTime:         subMatched[6],
+		}
+		events = append(events, e)
+	}
+end:
+	return events, err
+}
+
 func getStudent(data string) (student *Student, err error) {
 	student = &Student{}
 
+	// Get basic info.
 	arr := map[string]*struct {
 		pattern         string
 		matchedArrayLen int
@@ -248,6 +289,10 @@ func getStudent(data string) (student *Student, err error) {
 	student.PhoneNumber = arr["phoneNumber"].value
 	student.ReceiptNumber = arr["receiptNumber"].value
 
+	// Get classes
+	if student.ClassEvents, err = getClassEventsOfStudent(string(data)); err != nil {
+		goto end
+	}
 end:
 	return student, err
 }

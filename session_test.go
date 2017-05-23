@@ -86,7 +86,10 @@ func Example() {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			log.Printf("Name: %v, PhoneNumber: %v\n", student.Name, student.PhoneNumber)
+			log.Printf("%v, %v, %v\n", student.Name, student.PhoneNumber, student.ReceiptNumber)
+			for _, e := range student.ClassEvents {
+				log.Printf("%v, %v, %v, %v\n", e.ClassName, e.Status, e.BeginTime, e.EndTime)
+			}
 		}
 	}
 
@@ -109,7 +112,11 @@ func Example() {
 				log.Printf("error: %v\n", err)
 				goto end
 			}
-			log.Printf("Name: %v, PhoneNumber: %v\n", student.Name, student.PhoneNumber)
+			log.Printf("%v, %v, %v\n", student.Name, student.PhoneNumber, student.ReceiptNumber)
+			for _, e := range student.ClassEvents {
+				log.Printf("%v, %v, %v, %v\n", e.ClassName, e.Status, e.BeginTime, e.EndTime)
+			}
+
 		}
 	}
 
