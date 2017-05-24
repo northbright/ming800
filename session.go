@@ -233,7 +233,6 @@ func getClassEventsOfStudent(data string) (events []ClassEvent, err error) {
 	p = `clazzInstance\.id=(\d+)(?:.*?)clazz\.id=(\d+).*>\s+(\S+)(?:\s|.)*?<td(?:\s|.)*?<td(?:\s|.)*?>\s*(\S+)\s*?(\d{4}-\d{2}-\d{2}).*\s*(\d{4}-\d{2}-\d{2})?`
 	re = regexp.MustCompile(p)
 	for _, m := range matched {
-		fmt.Printf("m[0]: %v\n", m[0])
 		subMatched := re.FindStringSubmatch(m[0])
 		if len(subMatched) != 7 {
 			err = fmt.Errorf("Parse class events error while using regexp. subMatched len = %v", len(subMatched))
