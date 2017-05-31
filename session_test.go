@@ -37,6 +37,8 @@ func Example() {
 	var names = []string{"Emma", "王"}
 	var phoneNums = []string{"135"}
 	var ids []string
+	var categories []ming800.Category
+	var classes []ming800.Class
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
 	configFile = path.Join(currentDir, "config.json")
@@ -118,6 +120,20 @@ func Example() {
 			}
 
 		}
+	}
+
+	log.Printf("Get current categories and classes starting...\n")
+	if categories, classes, err = s.GetCurrentCategoriesAndClasses(); err != nil {
+		log.Printf("error: %v\n", err)
+		goto end
+	}
+
+	for i, category := range categories {
+		log.Printf("%v: %v\n", i, category)
+	}
+
+	for _, class := range classes {
+		log.Printf("%v\n", class)
 	}
 
 	// Logout

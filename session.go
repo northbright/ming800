@@ -30,11 +30,25 @@ type Session struct {
 
 type ClassEvent struct {
 	ClassInstanceId string
-	ClassId         string
+	ClazzId         string
 	ClassName       string
 	Status          string
 	BeginTime       string
 	EndTime         string
+}
+
+type Class struct {
+	ClassId         string
+	ClassName       string
+	ClassInstanceId string
+	ClazzId         string
+	ClazzName       string
+	Status          string
+}
+
+type Category struct {
+	Id   string
+	Name string
 }
 
 type Student struct {
@@ -57,6 +71,7 @@ var (
 		"studentSearch":        "/edu/student/search.action",
 		"viewStudent":          "/edu/student/basicinfo/viewstudent.action",
 		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
+		"viewCategory":         "/edu/base/clazz/viewClazz.action?clazz.id=",
 	}
 )
 
@@ -237,7 +252,7 @@ func getClassEventsOfStudent(records [][]string) (events []ClassEvent, err error
 		matched := re.FindStringSubmatch(records[i][0])
 		if len(matched) == 4 {
 			e.ClassInstanceId = matched[1]
-			e.ClassId = matched[2]
+			e.ClazzId = matched[2]
 			e.ClassName = html.UnescapeString(matched[3])
 		}
 
@@ -318,4 +333,157 @@ func (s *Session) GetStudent(id string) (student *Student, err error) {
 	student, err = getStudent(string(data))
 end:
 	return student, err
+}
+
+func (s *Session) GetCategory(id string) (category Category, err error) {
+	var urlStr = ""
+	var req *http.Request
+	var resp *http.Response
+	var data []byte
+	var csvs [][][]string
+
+	category = Category{}
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	urlStr = fmt.Sprintf("%v%v", s.urls["viewCategory"].String(), id)
+	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	csvs = htmlhelper.TablesToCSVs(string(data))
+	for i, csv := range csvs {
+		fmt.Printf("table: %v\n", i)
+		for j, row := range csv {
+			fmt.Printf("row: %v\n", j)
+			for k, col := range row {
+				fmt.Printf("col %v: %v\n", k, col)
+			}
+		}
+	}
+
+	if len(csvs) != 2 && len(csvs[0]) != 6 && len(csvs[0][2]) != 4 {
+		err = fmt.Errorf("Failed to get category details.")
+		goto end
+	}
+
+	category.Id = id
+	category.Name = csvs[0][2][1]
+
+	fmt.Printf("category: %v\n", category)
+
+end:
+	return category, err
+
+}
+
+func (s *Session) getCategories(data string) (categories []Category, err error) {
+	p := `/edu/base/clazz/viewClazz\.action\?clazz\.id=(\d+)`
+	re := regexp.MustCompile(p)
+	matched := re.FindAllStringSubmatch(data, -1)
+
+	for _, m := range matched {
+		category := Category{}
+
+		if category, err = s.GetCategory(m[1]); err != nil {
+			goto end
+		}
+		categories = append(categories, category)
+	}
+end:
+	return categories, err
+}
+
+func getClasses(data string) (classes []Class, err error) {
+	csvs := htmlhelper.TablesToCSVs(string(data))
+	for i, csv := range csvs {
+		fmt.Printf("table: %v\n", i)
+		for j, row := range csv {
+			if j == 0 {
+				continue
+			}
+			fmt.Printf("row %v:\n", j)
+
+			for k, col := range row {
+				fmt.Printf("col %v: %v\n", k, col)
+			}
+
+			c := Class{}
+			c.ClassId = row[1]
+
+			p := `clazzInstance\.id=(\d+)&clazz\.id=(\d+).*?>(.*?)&nbsp;</a>$`
+			re := regexp.MustCompile(p)
+			matched := re.FindStringSubmatch(row[0])
+			if len(matched) != 4 {
+				err = fmt.Errorf("Failed to parse class. table: %v, row: %v\n", i, j)
+				goto end
+			}
+
+			c.ClassName = strings.Replace(matched[3], " 00:00:00.0", "", -1)
+			c.ClassInstanceId = matched[1]
+			c.ClazzId = matched[2]
+
+			c.Status = row[3]
+
+			//fmt.Printf("=========\nc: %v\n", c)
+			classes = append(classes, c)
+
+		}
+	}
+
+end:
+	return classes, err
+
+}
+
+func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, classes []Class, err error) {
+	var req *http.Request
+	var resp *http.Response
+	var data []byte
+	var categorieMap = map[string]string{}
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	if req, err = http.NewRequest("GET", s.urls["listCategoryAndClass"].String(), nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	if categories, err = s.getCategories(string(data)); err != nil {
+		goto end
+	}
+
+	for _, v := range categories {
+		categoryMap[v.Id] = v.Name
+	}
+
+	if classes, err = getClasses(string(data)); err != nil {
+		goto end
+	}
+
+end:
+	return categories, classes, err
 }
