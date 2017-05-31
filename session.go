@@ -364,16 +364,6 @@ func (s *Session) GetCategory(id string) (category Category, err error) {
 	}
 
 	csvs = htmlhelper.TablesToCSVs(string(data))
-	for i, csv := range csvs {
-		fmt.Printf("table: %v\n", i)
-		for j, row := range csv {
-			fmt.Printf("row: %v\n", j)
-			for k, col := range row {
-				fmt.Printf("col %v: %v\n", k, col)
-			}
-		}
-	}
-
 	if len(csvs) != 2 && len(csvs[0]) != 6 && len(csvs[0][2]) != 4 {
 		err = fmt.Errorf("Failed to get category details.")
 		goto end
@@ -381,8 +371,6 @@ func (s *Session) GetCategory(id string) (category Category, err error) {
 
 	category.Id = id
 	category.Name = csvs[0][2][1]
-
-	fmt.Printf("category: %v\n", category)
 
 end:
 	return category, err
@@ -409,15 +397,9 @@ end:
 func getClasses(data string) (classes []Class, err error) {
 	csvs := htmlhelper.TablesToCSVs(string(data))
 	for i, csv := range csvs {
-		fmt.Printf("table: %v\n", i)
 		for j, row := range csv {
 			if j == 0 {
 				continue
-			}
-			fmt.Printf("row %v:\n", j)
-
-			for k, col := range row {
-				fmt.Printf("col %v: %v\n", k, col)
 			}
 
 			c := Class{}
@@ -437,9 +419,7 @@ func getClasses(data string) (classes []Class, err error) {
 
 			c.Status = row[3]
 
-			//fmt.Printf("=========\nc: %v\n", c)
 			classes = append(classes, c)
-
 		}
 	}
 
@@ -452,7 +432,6 @@ func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, class
 	var req *http.Request
 	var resp *http.Response
 	var data []byte
-	var categorieMap = map[string]string{}
 
 	if !s.LoggedIn {
 		err = fmt.Errorf("Not logged in.")
@@ -474,10 +453,6 @@ func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, class
 
 	if categories, err = s.getCategories(string(data)); err != nil {
 		goto end
-	}
-
-	for _, v := range categories {
-		categoryMap[v.Id] = v.Name
 	}
 
 	if classes, err = getClasses(string(data)); err != nil {

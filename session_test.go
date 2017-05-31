@@ -128,10 +128,12 @@ func Example() {
 		goto end
 	}
 
+	log.Printf("Catetories: \n")
 	for i, category := range categories {
 		log.Printf("%v: %v\n", i, category)
 	}
 
+	log.Printf("Classes: \n")
 	for _, class := range classes {
 		log.Printf("%v\n", class)
 	}
