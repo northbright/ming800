@@ -11,6 +11,8 @@ import (
 	//"path"
 	"regexp"
 	"strings"
+
+	"github.com/northbright/htmlhelper"
 )
 
 type Session struct {
@@ -223,74 +225,63 @@ func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, 
 	return s.SearchStudent("byEmail", phoneNumber)
 }
 
-func getClassEventsOfStudent(data string) (events []ClassEvent, err error) {
+func getClassEventsOfStudent(records [][]string) (events []ClassEvent, err error) {
 	events = []ClassEvent{}
-	p := `viewClazzInstance\.action\?clazzInstance\.id=.*>(\s|.)*?</tr>`
 
-	re := regexp.MustCompile(p)
-	matched := re.FindAllStringSubmatch(data, -1)
+	nRow := len(records)
+	for i := 1; i <= nRow-1; i++ {
+		e := ClassEvent{}
 
-	p = `clazzInstance\.id=(\d+)(?:.*?)clazz\.id=(\d+).*>\s+(\S+)(?:\s|.)*?<td(?:\s|.)*?<td(?:\s|.)*?>\s*(\S+)\s*?(\d{4}-\d{2}-\d{2}).*\s*(\d{4}-\d{2}-\d{2})?`
-	re = regexp.MustCompile(p)
-	for _, m := range matched {
-		subMatched := re.FindStringSubmatch(m[0])
-		if len(subMatched) != 7 {
-			err = fmt.Errorf("Parse class events error while using regexp. subMatched len = %v", len(subMatched))
-			goto end
+		p := `clazzInstance\.id=(\d+)(?:.*?)clazz\.id=(\d+).*>(\S+)</a>$`
+		re := regexp.MustCompile(p)
+		matched := re.FindStringSubmatch(records[i][0])
+		if len(matched) == 4 {
+			e.ClassInstanceId = matched[1]
+			e.ClassId = matched[2]
+			e.ClassName = html.UnescapeString(matched[3])
 		}
 
-		e := ClassEvent{
-			ClassInstanceId: subMatched[1],
-			ClassId:         subMatched[2],
-			ClassName:       html.UnescapeString(subMatched[3]),
-			Status:          subMatched[4],
-			BeginTime:       subMatched[5],
-			EndTime:         subMatched[6],
+		p = `^(\S+)(\d{4}-\d{2}-\d{2}) 00:00:00.0&nbsp;&nbsp;(\d{4}-\d{2}-\d{2})?`
+		re = regexp.MustCompile(p)
+		matched = re.FindStringSubmatch(records[i][2])
+		if len(matched) == 4 {
+			e.Status = matched[1]
+			e.BeginTime = matched[2]
+			e.EndTime = matched[3]
 		}
+
 		events = append(events, e)
 	}
-end:
+
 	return events, err
 }
 
 func getStudent(data string) (student *Student, err error) {
+	var p = ``
+	var re *regexp.Regexp
+	var matched []string
+
 	student = &Student{}
+	csvs := htmlhelper.TablesToCSVs(data)
 
-	// Get basic info.
-	arr := map[string]*struct {
-		pattern         string
-		matchedArrayLen int
-		matchedIndex    int
-		value           string
-	}{
-		"name":          {`姓名/别名\s*</td>\s*<td.*>\s*<b>(.*?)\r\n`, 2, 1, ""},
-		"sid":           {`学号\s*</td>\s*<td.*>\s*(\S*?)\r\n`, 2, 1, ""},
-		"status":        {`审核状态\s*</td>\s*<td.*>\s*(\S?)\r\n`, 2, 1, ""},
-		"comments":      {`备注\s*</td>\s*<td.*>\s*((.|\s)*?)</td>`, 3, 1, ""},
-		"phoneNumber":   {`电话/联系人\s*</td>\s*<td.*>\s*(.*?)/?\r\n`, 2, 1, ""},
-		"receiptNumber": {`发票号</td><td.*>(.*?)</td>`, 2, 1, ""},
+	student.Name = html.UnescapeString(strings.TrimLeft(csvs[0][1][1], "<b>"))
+	student.SID = csvs[0][1][3]
+	student.Status = csvs[0][6][1]
+	student.Comments = html.UnescapeString(csvs[0][7][1])
+
+	p = `^(.*?)/`
+	re = regexp.MustCompile(p)
+	matched = re.FindStringSubmatch(csvs[1][1][1])
+	if len(matched) == 2 {
+		student.PhoneNumber = matched[1]
 	}
-
-	for k, v := range arr {
-		re := regexp.MustCompile(v.pattern)
-		matched := re.FindStringSubmatch(data)
-		if len(matched) != v.matchedArrayLen {
-			err = fmt.Errorf("No student info matched.")
-			goto end
-		}
-		arr[k].value = html.UnescapeString(matched[v.matchedIndex])
-	}
-
-	student.Name = arr["name"].value
-	student.SID = arr["sid"].value
-	student.Status = arr["status"].value
-	student.Comments = arr["comments"].value
-	student.PhoneNumber = arr["phoneNumber"].value
-	student.ReceiptNumber = arr["receiptNumber"].value
+	student.ReceiptNumber = csvs[2][1][1]
 
 	// Get classes
-	if student.ClassEvents, err = getClassEventsOfStudent(string(data)); err != nil {
-		goto end
+	if len(csvs) >= 4 {
+		if student.ClassEvents, err = getClassEventsOfStudent(csvs[3]); err != nil {
+			goto end
+		}
 	}
 end:
 	return student, err
