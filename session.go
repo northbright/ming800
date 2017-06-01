@@ -13,49 +13,79 @@ import (
 	"github.com/northbright/htmlhelper"
 )
 
+// Session represents the login session and provides methods to interactive with ming800.
 type Session struct {
+	// ServerURL is the server base URL of ming800.
 	ServerURL string
-	Company   string
-	User      string
-	Password  string
-	baseURL   *url.URL
-	jar       *cookiejar.Jar
-	client    *http.Client
-	LoggedIn  bool
-	// uls contains *url.URL of actions.
+	// Company is the company(orgnization) name for login.
+	Company string
+	// User is the user name of ming800.
+	User string
+	// Password is the user's password.
+	Password string
+	baseURL  *url.URL
+	jar      *cookiejar.Jar
+	client   *http.Client
+	// LoggedIn represents login status.
+	LoggedIn bool
+	// urls contains *url.URL of actions.
 	urls map[string]*url.URL
 }
 
+// ClassEvent represents the class event of student.
 type ClassEvent struct {
+	// ClassInstanceId is the instance ID.
 	ClassInstanceId string
-	CategoryId      string
-	ClassName       string
-	Status          string
-	BeginTime       string
-	EndTime         string
+	// CategoryId is the category ID(clazzid).
+	CategoryId string
+	// ClassName is the class name.
+	ClassName string
+	// Status is the status of event(e.g. "转出", "转入").
+	Status string
+	// BeginTime is the begin time of status.
+	BeginTime string
+	// EndTime is the end time of status.
+	EndTime string
 }
 
+// Class represents class information.
 type Class struct {
-	ClassId         string
-	ClassName       string
+	// ClassId is the human readable ID of class.
+	ClassId string
+	// ClassName is the name of class.
+	ClassName string
+	// ClassInstanceId is the unique ID of class for internal use.
 	ClassInstanceId string
-	CategoryId      string
-	Status          string
+	// CategoryId is category ID.
+	CategoryId string
+	// Status is the status of class(e.g. "可报名").
+	Status string
 }
 
+// Category represents the category information.
 type Category struct {
-	Id   string
+	// Id is the category ID.
+	Id string
+	// Name is the category name.
 	Name string
 }
 
+// Student represeents the student information.
 type Student struct {
-	Name          string
-	SID           string
-	Status        string
-	Comments      string
-	PhoneNumber   string
+	// Name is the name of student.
+	Name string
+	// SID is the human readable student ID.
+	SID string
+	// Status is the status of student.
+	Status string
+	// Comments stores the comments of the student.
+	Comments string
+	// PhoneNumber is the phone number of the contact for the student.
+	PhoneNumber string
+	// ReceiptNumber is the latest receipt number.
 	ReceiptNumber string
-	ClassEvents   []ClassEvent
+	// ClassEvents stores the class events of the student.
+	ClassEvents []ClassEvent
 }
 
 var (
@@ -73,6 +103,7 @@ var (
 	}
 )
 
+// NewSession creates a new session of ming800.
 func NewSession(serverURL, company, user, password string) (s *Session, err error) {
 	var jar *cookiejar.Jar
 
@@ -98,6 +129,7 @@ end:
 	return s, err
 }
 
+// Login performs the login action.
 func (s *Session) Login() (err error) {
 	var req *http.Request
 	var resp *http.Response
@@ -143,6 +175,7 @@ end:
 	return err
 }
 
+// Logout performs the log out action.
 func (s *Session) Logout() (err error) {
 	var req *http.Request
 	var resp *http.Response
@@ -170,6 +203,14 @@ end:
 	return err
 }
 
+// SearchStudent searchs the student in ming800 by given search type and value.
+//
+// Params:
+//     searchBy: search type.
+//               Available values: "byName" for search by name and "byEmail" for search by phone.
+//     value: search value.
+// Return:
+//     returns the IDs of matched students.
 func (s *Session) SearchStudent(searchBy, value string) (ids []string, err error) {
 	var req *http.Request
 	var resp *http.Response
@@ -230,10 +271,12 @@ end:
 	return ids, err
 }
 
+// SearchStudentByName searchs student by name.
 func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 	return s.SearchStudent("byName", name)
 }
 
+// SearchStudentByPhoneNumber searchs student by phone number.
 func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, err error) {
 	return s.SearchStudent("byEmail", phoneNumber)
 }
@@ -300,6 +343,7 @@ end:
 	return student, err
 }
 
+// GetStudent gets the student by ID.
 func (s *Session) GetStudent(id string) (student Student, err error) {
 	var req *http.Request
 	var resp *http.Response
@@ -333,6 +377,7 @@ end:
 	return student, err
 }
 
+// GetCategory gets the category by ID.
 func (s *Session) GetCategory(id string) (category Category, err error) {
 	var urlStr = ""
 	var req *http.Request
@@ -426,6 +471,7 @@ end:
 
 }
 
+// GetCurrentCategoriesAndClasses gets the current categories and classes in ming800.
 func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, classes []Class, err error) {
 	var req *http.Request
 	var resp *http.Response
@@ -550,6 +596,7 @@ end:
 	return students, err
 }
 
+// GetStudentsOfClass gets the students of one class by given class ID.
 func (s *Session) GetStudentsOfClass(classId string) (students []Student, err error) {
 	var urlStr string
 	var req *http.Request
@@ -583,6 +630,7 @@ end:
 	return students, err
 }
 
+// GetCurrentStudents gets all current students in ming800.
 func (s *Session) GetCurrentStudents() (students []Student, err error) {
 	var classes []Class
 
