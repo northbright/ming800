@@ -42,7 +42,6 @@ type Class struct {
 	ClassName       string
 	ClassInstanceId string
 	ClazzId         string
-	ClazzName       string
 	Status          string
 }
 
