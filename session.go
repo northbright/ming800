@@ -203,7 +203,7 @@ end:
 	return err
 }
 
-// SearchStudent searchs the student in ming800 by given search type and value.
+// SearchStudent searches the student in ming800 by given search type and value.
 //
 // Params:
 //     searchBy: search type.
@@ -271,12 +271,12 @@ end:
 	return ids, err
 }
 
-// SearchStudentByName searchs student by name.
+// SearchStudentByName searches student by name.
 func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 	return s.SearchStudent("byName", name)
 }
 
-// SearchStudentByPhoneNumber searchs student by phone number.
+// SearchStudentByPhoneNumber searches student by phone number.
 func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, err error) {
 	return s.SearchStudent("byEmail", phoneNumber)
 }
