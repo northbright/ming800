@@ -72,6 +72,7 @@ var (
 		"viewStudent":          "/edu/student/basicinfo/viewstudent.action",
 		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
 		"viewCategory":         "/edu/base/clazz/viewClazz.action?clazz.id=",
+		"listStudentsOfClass":  "/edu/student/basicinfo/liststudentbyclazzinstance.action?clazzInstance.id=",
 	}
 )
 
@@ -271,12 +272,12 @@ func getClassEventsOfStudent(records [][]string) (events []ClassEvent, err error
 	return events, err
 }
 
-func getStudent(data string) (student *Student, err error) {
+func getStudent(data string) (student Student, err error) {
 	var p = ``
 	var re *regexp.Regexp
 	var matched []string
 
-	student = &Student{}
+	student = Student{}
 	csvs := htmlhelper.TablesToCSVs(data)
 
 	student.Name = html.UnescapeString(strings.TrimLeft(csvs[0][1][1], "<b>"))
@@ -302,13 +303,13 @@ end:
 	return student, err
 }
 
-func (s *Session) GetStudent(id string) (student *Student, err error) {
+func (s *Session) GetStudent(id string) (student Student, err error) {
 	var req *http.Request
 	var resp *http.Response
 	var urlStr string
 	var data []byte
 
-	student = &Student{}
+	student = Student{}
 
 	if !s.LoggedIn {
 		err = fmt.Errorf("Not logged in.")
@@ -364,7 +365,7 @@ func (s *Session) GetCategory(id string) (category Category, err error) {
 	}
 
 	csvs = htmlhelper.TablesToCSVs(string(data))
-	if len(csvs) != 2 && len(csvs[0]) != 6 && len(csvs[0][2]) != 4 {
+	if len(csvs) != 2 || len(csvs[0]) != 6 || len(csvs[0][2]) != 4 {
 		err = fmt.Errorf("Failed to get category details.")
 		goto end
 	}
@@ -461,4 +462,154 @@ func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, class
 
 end:
 	return categories, classes, err
+}
+
+func getAllStudentPageLinks(data string) (links []string) {
+	p := `<a id="pageindex_\d+" href="(.*?)"`
+	re := regexp.MustCompile(p)
+	matched := re.FindAllStringSubmatch(data, -1)
+
+	for _, m := range matched {
+		links = append(links, m[1])
+	}
+
+	return links
+}
+
+func (s *Session) getStudentsPerPage(link string) (students []Student, err error) {
+	var u *url.URL
+	var urlStr string
+	var req *http.Request
+	var resp *http.Response
+	var data []byte
+	var csvs [][][]string
+	var p string
+	var re *regexp.Regexp
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	u, _ = url.Parse(link)
+	urlStr = s.baseURL.ResolveReference(u).String()
+	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	csvs = htmlhelper.TablesToCSVs(string(data))
+	/*for i, csv := range csvs {
+		fmt.Printf("table: %v\n", i)
+		for j, row := range csv {
+			fmt.Printf("row: %v\n", j)
+			for k, col := range row {
+				fmt.Printf("col %v: %v\n", k, col)
+			}
+		}
+	}*/
+	if len(csvs) != 1 {
+		err = fmt.Errorf("Failed to get student list table.")
+		goto end
+	}
+
+	p = `<a href=".*?student\.id=(.*?)&`
+	re = regexp.MustCompile(p)
+	for i, row := range csvs[0] {
+		// Skip first empty row
+		if i == 0 {
+			continue
+		}
+
+		if len(row) < 0 {
+			err = fmt.Errorf("Failed to get student list row.")
+		}
+
+		matched := re.FindStringSubmatch(row[0])
+
+		id := matched[1]
+		student := Student{}
+		if student, err = s.GetStudent(id); err != nil {
+			goto end
+		}
+
+		students = append(students, student)
+	}
+
+end:
+	return students, err
+}
+
+func (s *Session) getStudentsOfClass(data string) (students []Student, err error) {
+	links := getAllStudentPageLinks(data)
+
+	for _, link := range links {
+		studentsPerPage := []Student{}
+		if studentsPerPage, err = s.getStudentsPerPage(link); err != nil {
+			goto end
+		}
+		students = append(students, studentsPerPage...)
+	}
+end:
+	return students, err
+}
+
+func (s *Session) GetStudentsOfClass(classId string) (students []Student, err error) {
+	var urlStr string
+	var req *http.Request
+	var resp *http.Response
+	var data []byte
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	urlStr = fmt.Sprintf("%v%v", s.urls["listStudentsOfClass"].String(), classId)
+	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	if students, err = s.getStudentsOfClass(string(data)); err != nil {
+		goto end
+	}
+
+end:
+	return students, err
+}
+
+func (s *Session) GetCurrentStudents() (students []Student, err error) {
+	var classes []Class
+
+	if _, classes, err = s.GetCurrentCategoriesAndClasses(); err != nil {
+		goto end
+	}
+
+	for _, class := range classes {
+		studentsOfClass := []Student{}
+		if studentsOfClass, err = s.GetStudentsOfClass(class.ClassInstanceId); err != nil {
+			goto end
+		}
+
+		students = append(students, studentsOfClass...)
+	}
+end:
+	return students, err
 }

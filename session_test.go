@@ -39,6 +39,7 @@ func Example() {
 	var ids []string
 	var categories []ming800.Category
 	var classes []ming800.Class
+	var students []ming800.Student
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
 	configFile = path.Join(currentDir, "config.json")
@@ -83,7 +84,7 @@ func Example() {
 		// Get students.
 		log.Printf("Get students starting...\n")
 		for _, id := range ids {
-			student := &ming800.Student{}
+			student := ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
@@ -109,7 +110,7 @@ func Example() {
 		// Get students.
 		log.Printf("Get students starting...\n")
 		for _, id := range ids {
-			student := &ming800.Student{}
+			student := ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
 				log.Printf("error: %v\n", err)
 				goto end
@@ -136,6 +137,16 @@ func Example() {
 	log.Printf("Classes: \n")
 	for _, class := range classes {
 		log.Printf("%v\n", class)
+	}
+
+	log.Printf("Get current students starting...\n")
+	if students, err = s.GetCurrentStudents(); err != nil {
+		log.Printf("error: %v\n", err)
+		goto end
+	}
+
+	for i, s := range students {
+		log.Printf("%v: %v\n", i, s)
 	}
 
 	// Logout
