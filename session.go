@@ -506,15 +506,6 @@ func (s *Session) getStudentsPerPage(link string) (students []Student, err error
 	}
 
 	csvs = htmlhelper.TablesToCSVs(string(data))
-	/*for i, csv := range csvs {
-		fmt.Printf("table: %v\n", i)
-		for j, row := range csv {
-			fmt.Printf("row: %v\n", j)
-			for k, col := range row {
-				fmt.Printf("col %v: %v\n", k, col)
-			}
-		}
-	}*/
 	if len(csvs) != 1 {
 		err = fmt.Errorf("Failed to get student list table.")
 		goto end
