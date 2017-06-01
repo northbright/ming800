@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/northbright/ming800.svg?branch=master)](https://travis-ci.org/northbright/ming800)
 [![Go Report Card](https://goreportcard.com/badge/github.com/northbright/ming800)](https://goreportcard.com/report/github.com/northbright/ming800)
-[![GoDoc](https://godoc.org/github.com/northbright/min800?status.svg)](https://godoc.org/github.com/northbright/min800)
+[![GoDoc](https://godoc.org/github.com/northbright/ming800?status.svg)](https://godoc.org/github.com/northbright/ming800)
 
 ming800是一个[Golang](https://golang.org)包，提供适用于[旧单机版本](/#适用版本)明日管理系统的API接口。
 
