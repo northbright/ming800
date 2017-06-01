@@ -596,8 +596,8 @@ end:
 	return students, err
 }
 
-// GetStudentsOfClass gets the students of one class by given class ID.
-func (s *Session) GetStudentsOfClass(classId string) (students []Student, err error) {
+// GetStudentsOfClass gets the students of one class by given class instance ID.
+func (s *Session) GetStudentsOfClass(classInstanceId string) (students []Student, err error) {
 	var urlStr string
 	var req *http.Request
 	var resp *http.Response
@@ -608,7 +608,7 @@ func (s *Session) GetStudentsOfClass(classId string) (students []Student, err er
 		goto end
 	}
 
-	urlStr = fmt.Sprintf("%v%v", s.urls["listStudentsOfClass"].String(), classId)
+	urlStr = fmt.Sprintf("%v%v", s.urls["listStudentsOfClass"].String(), classInstanceId)
 	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
 		goto end
 	}
