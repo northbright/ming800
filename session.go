@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
-	//"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	//"path"
 	"regexp"
 	"strings"
 
