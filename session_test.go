@@ -96,7 +96,7 @@ func Example() {
 		}
 	}
 
-	// 2. Search student by name.
+	// 2. Search student by phone.
 	for _, phoneNum := range phoneNums {
 		log.Printf("SearchStudentByPhoneNumber(%v) starting...\n", phoneNum)
 
@@ -123,6 +123,7 @@ func Example() {
 		}
 	}
 
+	// Get current categories and classes.
 	log.Printf("Get current categories and classes starting...\n")
 	if categories, classes, err = s.GetCurrentCategoriesAndClasses(); err != nil {
 		log.Printf("error: %v\n", err)
@@ -139,6 +140,7 @@ func Example() {
 		log.Printf("%v\n", class)
 	}
 
+	// Get current students.
 	log.Printf("Get current students starting...\n")
 	if students, err = s.GetCurrentStudents(); err != nil {
 		log.Printf("error: %v\n", err)
