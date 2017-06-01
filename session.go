@@ -30,7 +30,7 @@ type Session struct {
 
 type ClassEvent struct {
 	ClassInstanceId string
-	ClazzId         string
+	CategoryId      string
 	ClassName       string
 	Status          string
 	BeginTime       string
@@ -41,7 +41,7 @@ type Class struct {
 	ClassId         string
 	ClassName       string
 	ClassInstanceId string
-	ClazzId         string
+	CategoryId      string
 	Status          string
 }
 
@@ -252,7 +252,7 @@ func getClassEventsOfStudent(records [][]string) (events []ClassEvent, err error
 		matched := re.FindStringSubmatch(records[i][0])
 		if len(matched) == 4 {
 			e.ClassInstanceId = matched[1]
-			e.ClazzId = matched[2]
+			e.CategoryId = matched[2]
 			e.ClassName = html.UnescapeString(matched[3])
 		}
 
@@ -415,7 +415,7 @@ func getClasses(data string) (classes []Class, err error) {
 
 			c.ClassName = strings.Replace(matched[3], " 00:00:00.0", "", -1)
 			c.ClassInstanceId = matched[1]
-			c.ClazzId = matched[2]
+			c.CategoryId = matched[2]
 
 			c.Status = row[3]
 
