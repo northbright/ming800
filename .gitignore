@@ -1,9 +1,3 @@
-*
-!.gitignore
-!LICENSE
-!*.md
-!*.yml
-!*.go
-!*.json
-!*.sh
 config.json
+*.test
+/example/server/server
