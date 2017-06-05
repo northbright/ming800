@@ -29,17 +29,19 @@ func Example() {
 		Password  string `json:"password"`
 	}
 
-	var err error
-	var buf []byte
-	var currentDir, configFile string
-	var s *ming800.Session
-	var config Config
-	var names = []string{"Emma", "王"}
-	var phoneNums = []string{"135"}
-	var ids []string
-	var categories []ming800.Category
-	var classes []ming800.Class
-	var students []ming800.Student
+	var (
+		err                    error
+		buf                    []byte
+		currentDir, configFile string
+		s                      *ming800.Session
+		config                 Config
+		names                  = []string{"Emma", "王"}
+		phoneNums              = []string{"135"}
+		ids                    []string
+		categories             []ming800.Category
+		classes                []ming800.Class
+		students               []ming800.Student
+	)
 
 	currentDir, _ = pathhelper.GetCurrentExecDir()
 	configFile = path.Join(currentDir, "config.json")
