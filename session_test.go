@@ -2,6 +2,7 @@ package ming800_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"path"
@@ -43,33 +44,39 @@ func Example() {
 		students               []ming800.Student
 	)
 
+	defer func() {
+		if err != nil {
+			log.Printf("%v\n")
+		}
+	}()
+
 	currentDir, _ = pathhelper.GetCurrentExecDir()
 	configFile = path.Join(currentDir, "config.json")
 
 	// Load Conifg
 	if buf, err = ioutil.ReadFile(configFile); err != nil {
-		log.Printf("Load config file error: %v\n", err)
-		goto end
+		err = fmt.Errorf("load config file error: %v\n", err)
+		return
 	}
 
 	if err = json.Unmarshal(buf, &config); err != nil {
-		log.Printf("Parse config err: %v\n", err)
-		goto end
+		err = fmt.Errorf("parse config err: %v\n", err)
+		return
 	}
 
 	// New a session
 	if s, err = ming800.NewSession(config.ServerURL, config.Company, config.User, config.Password); err != nil {
-		log.Printf("NewSession() error: %v\n", err)
-		goto end
+		err = fmt.Errorf("NewSession() error: %v\n", err)
+		return
 	}
 
 	// Login
 	if err = s.Login(); err != nil {
-		log.Printf("Login() error: %v\n", err)
-		goto end
+		err = fmt.Errorf("Login() error: %v\n", err)
+		return
 	}
 
-	log.Printf("login() successfully.\n")
+	log.Printf("Login() successfully.\n")
 
 	// Search
 	// 1. Search student by name.
@@ -77,8 +84,8 @@ func Example() {
 		log.Printf("SearchStudentByName(%v) starting...\n", name)
 
 		if ids, err = s.SearchStudentByName(name); err != nil {
-			log.Printf("error: %v\n", err)
-			goto end
+			err = fmt.Errorf("SearchStudentByName() error: %v\n", err)
+			return
 		}
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
@@ -88,8 +95,8 @@ func Example() {
 		for _, id := range ids {
 			student := ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
-				log.Printf("error: %v\n", err)
-				goto end
+				err = fmt.Errorf("GetStudent() error: %v\n", err)
+				return
 			}
 			log.Printf("%v, %v, %v\n", student.Name, student.PhoneNumber, student.ReceiptNumber)
 			for _, e := range student.ClassEvents {
@@ -103,8 +110,8 @@ func Example() {
 		log.Printf("SearchStudentByPhoneNumber(%v) starting...\n", phoneNum)
 
 		if ids, err = s.SearchStudentByPhoneNumber(phoneNum); err != nil {
-			log.Printf("error: %v\n", err)
-			goto end
+			err = fmt.Errorf("SearchStudentByPhoneNumber() error: %v\n", err)
+			return
 		}
 
 		log.Printf("Found %v ids: %v\n\n", len(ids), ids)
@@ -114,8 +121,8 @@ func Example() {
 		for _, id := range ids {
 			student := ming800.Student{}
 			if student, err = s.GetStudent(id); err != nil {
-				log.Printf("error: %v\n", err)
-				goto end
+				err = fmt.Errorf("GetStudent() error: %v\n", err)
+				return
 			}
 			log.Printf("%v, %v, %v\n", student.Name, student.PhoneNumber, student.ReceiptNumber)
 			for _, e := range student.ClassEvents {
@@ -128,8 +135,8 @@ func Example() {
 	// Get current categories and classes.
 	log.Printf("Get current categories and classes starting...\n")
 	if categories, classes, err = s.GetCurrentCategoriesAndClasses(); err != nil {
-		log.Printf("error: %v\n", err)
-		goto end
+		err = fmt.Errorf("GetCurrentCategoriesAndClasses() error: %v\n", err)
+		return
 	}
 
 	log.Printf("Catetories: \n")
@@ -145,8 +152,8 @@ func Example() {
 	// Get current students.
 	log.Printf("Get current students starting...\n")
 	if students, err = s.GetCurrentStudents(); err != nil {
-		log.Printf("error: %v\n", err)
-		goto end
+		err = fmt.Errorf("GetCurrentStudents() error: %v\n", err)
+		return
 	}
 
 	for i, s := range students {
@@ -155,11 +162,10 @@ func Example() {
 
 	// Logout
 	if err = s.Logout(); err != nil {
-		log.Printf("Logout() error: %v\n", err)
-		goto end
+		err = fmt.Errorf("Logout() error: %v\n", err)
+		return
 	}
 
 	log.Printf("logout() successfully.\n")
-end:
 	// Output:
 }
