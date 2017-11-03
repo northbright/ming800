@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -48,6 +49,19 @@ type ClassEvent struct {
 	EndTime string
 }
 
+type ClassSchedule struct {
+	// BeginDate is the begin date of the class.
+	BeginDate string
+	// EndDate is the end date of the class.
+	EndDate string
+	// TeacherName is the teacher name of the class.
+	TeacherName string
+	// ClassRoom is the class room of the class.
+	ClassRoom string
+	// Period is the period of the class.
+	Period string
+}
+
 // Class represents class information.
 type Class struct {
 	// ClassId is the human readable ID of class.
@@ -60,6 +74,8 @@ type Class struct {
 	CategoryId string
 	// Status is the status of class(e.g. "可报名").
 	Status string
+	// Schedule represents the class schedule. See ClassSchedule type.
+	Schedule ClassSchedule
 }
 
 // Category represents the category information.
@@ -100,6 +116,7 @@ var (
 		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
 		"viewCategory":         "/edu/base/clazz/viewClazz.action?clazz.id=",
 		"listStudentsOfClass":  "/edu/student/basicinfo/liststudentbyclazzinstance.action?clazzInstance.id=",
+		"viewClassSchedule":    "/course/schedule/viewScheduleClazzInstance.action?clazzInstance.id=",
 	}
 )
 
@@ -437,7 +454,70 @@ end:
 	return categories, err
 }
 
-func getClasses(data string) (classes []Class, err error) {
+func getClassSchedule(data string) (ClassSchedule, error) {
+	var err error
+	var classSchedule ClassSchedule
+	var row []string
+
+	p := `^(\S+\s\d{2}:\d{2}-\d{2}:\d{2})\s\S+<br>$`
+	re := regexp.MustCompile(p)
+
+	csvs := htmlhelper.TablesToCSVs(data)
+	if len(csvs) != 2 {
+		err = fmt.Errorf("Class schedule table not found")
+		goto end
+	}
+
+	// Check if no class schedule data. It may not exist.
+	if len(csvs[1]) != 2 {
+		goto end
+	}
+
+	row = csvs[1][1]
+	classSchedule.BeginDate = row[2]
+	classSchedule.EndDate = row[3]
+	classSchedule.TeacherName = html.UnescapeString(strings.TrimRight(row[4], "<b>"))
+	classSchedule.ClassRoom = html.UnescapeString(row[5])
+	classSchedule.Period = re.FindString(row[6])
+	log.Printf("classSchedule: %v", classSchedule)
+
+end:
+	return classSchedule, err
+}
+
+func (s *Session) getClassSchedule(classInstanceId string) (ClassSchedule, error) {
+	var err error
+	var req *http.Request
+	var resp *http.Response
+	var urlStr string
+	var schedule ClassSchedule
+	var data []byte
+
+	if !s.LoggedIn {
+		err = fmt.Errorf("Not logged in.")
+		goto end
+	}
+
+	urlStr = fmt.Sprintf("%v%v", s.urls["viewClassSchedule"].String(), classInstanceId)
+	if req, err = http.NewRequest("GET", urlStr, nil); err != nil {
+		goto end
+	}
+
+	if resp, err = s.client.Do(req); err != nil {
+		goto end
+	}
+	defer resp.Body.Close()
+
+	if data, err = ioutil.ReadAll(resp.Body); err != nil {
+		goto end
+	}
+
+	schedule, err = getClassSchedule(string(data))
+end:
+	return schedule, err
+}
+
+func (s *Session) getClasses(data string) (classes []Class, err error) {
 	csvs := htmlhelper.TablesToCSVs(string(data))
 	for i, csv := range csvs {
 		for j, row := range csv {
@@ -461,6 +541,9 @@ func getClasses(data string) (classes []Class, err error) {
 			c.CategoryId = matched[2]
 
 			c.Status = row[3]
+			if c.Schedule, err = s.getClassSchedule(c.ClassInstanceId); err != nil {
+				goto end
+			}
 
 			classes = append(classes, c)
 		}
@@ -499,7 +582,7 @@ func (s *Session) GetCurrentCategoriesAndClasses() (categories []Category, class
 		goto end
 	}
 
-	if classes, err = getClasses(string(data)); err != nil {
+	if classes, err = s.getClasses(string(data)); err != nil {
 		goto end
 	}
 
