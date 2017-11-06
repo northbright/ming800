@@ -485,6 +485,7 @@ end:
 	return classSchedule, err
 }
 
+// GetClassSchedule gets the class schedule data by given class instance ID.
 func (s *Session) GetClassSchedule(classInstanceId string) (ClassSchedule, error) {
 	var err error
 	var req *http.Request
