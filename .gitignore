@@ -1,4 +1,5 @@
 *.test
+config.json
 example/server/config.json.bk
 example/server/server.exe
 example/server/server
