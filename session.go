@@ -485,7 +485,7 @@ end:
 	return classSchedule, err
 }
 
-func (s *Session) getClassSchedule(classInstanceId string) (ClassSchedule, error) {
+func (s *Session) GetClassSchedule(classInstanceId string) (ClassSchedule, error) {
 	var err error
 	var req *http.Request
 	var resp *http.Response
@@ -541,7 +541,7 @@ func (s *Session) getClasses(data string) (classes []Class, err error) {
 			c.CategoryId = matched[2]
 
 			c.Status = row[3]
-			if c.Schedule, err = s.getClassSchedule(c.ClassInstanceId); err != nil {
+			if c.Schedule, err = s.GetClassSchedule(c.ClassInstanceId); err != nil {
 				goto end
 			}
 
