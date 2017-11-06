@@ -54,8 +54,8 @@ type ClassSchedule struct {
 	BeginDate string
 	// EndDate is the end date of the class.
 	EndDate string
-	// TeacherName is the teacher name of the class.
-	TeacherName string
+	// Teachers are the teachers of the class. One class can have multiple teachers.
+	Teachers []string
 	// ClassRoom is the class room of the class.
 	ClassRoom string
 	// Period is the period of the class.
@@ -475,9 +475,14 @@ func getClassSchedule(data string) (ClassSchedule, error) {
 	row = csvs[1][1]
 	classSchedule.BeginDate = row[2]
 	classSchedule.EndDate = row[3]
-	classSchedule.TeacherName = html.UnescapeString(strings.TrimRight(row[4], "<b>"))
+
+	// Get teachers.
+	s := html.UnescapeString(strings.TrimRight(row[4], "<br>"))
+	classSchedule.Teachers = strings.Split(s, "<br>")
+
 	classSchedule.ClassRoom = html.UnescapeString(row[5])
 
+	// Get period.
 	p := `^\S+\s\d{2}:\d{2}-\d{2}:\d{2}`
 	re := regexp.MustCompile(p)
 	classSchedule.Period = re.FindString(row[6])
