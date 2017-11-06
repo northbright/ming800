@@ -349,7 +349,7 @@ func getStudent(data string) (student Student, err error) {
 	}
 	student.ReceiptNumber = csvs[2][1][1]
 
-	// Get classes
+	// Get class events.
 	if len(csvs) >= 4 {
 		if student.ClassEvents, err = getClassEventsOfStudent(csvs[3]); err != nil {
 			goto end
