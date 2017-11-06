@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -486,8 +485,6 @@ func getClassSchedule(data string) (ClassSchedule, error) {
 	p := `^\S+\s\d{2}:\d{2}-\d{2}:\d{2}`
 	re := regexp.MustCompile(p)
 	classSchedule.Period = re.FindString(row[6])
-
-	log.Printf("classSchedule: %v", classSchedule)
 
 	return classSchedule, nil
 }
