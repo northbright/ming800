@@ -455,22 +455,21 @@ end:
 }
 
 func getClassSchedule(data string) (ClassSchedule, error) {
-	var err error
-	var classSchedule ClassSchedule
-	var row []string
-
-	p := `^(\S+\s\d{2}:\d{2}-\d{2}:\d{2})\s\S+<br>$`
-	re := regexp.MustCompile(p)
+	var (
+		err           error
+		classSchedule ClassSchedule
+		row           []string
+	)
 
 	csvs := htmlhelper.TablesToCSVs(data)
 	if len(csvs) != 2 {
 		err = fmt.Errorf("Class schedule table not found")
-		goto end
+		return classSchedule, err
 	}
 
 	// Check if no class schedule data. It may not exist.
 	if len(csvs[1]) != 2 {
-		goto end
+		return classSchedule, err
 	}
 
 	row = csvs[1][1]
@@ -478,11 +477,14 @@ func getClassSchedule(data string) (ClassSchedule, error) {
 	classSchedule.EndDate = row[3]
 	classSchedule.TeacherName = html.UnescapeString(strings.TrimRight(row[4], "<b>"))
 	classSchedule.ClassRoom = html.UnescapeString(row[5])
+
+	p := `^\S+\s\d{2}:\d{2}-\d{2}:\d{2}`
+	re := regexp.MustCompile(p)
 	classSchedule.Period = re.FindString(row[6])
+
 	log.Printf("classSchedule: %v", classSchedule)
 
-end:
-	return classSchedule, err
+	return classSchedule, nil
 }
 
 // GetClassSchedule gets the class schedule data by given class instance ID.
