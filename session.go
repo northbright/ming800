@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
-	//"log"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -796,6 +796,7 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 		reArr[k] = regexp.MustCompile(v)
 	}
 
+	classIDs := []string{}
 	// Parse HTML response to get tables(CSV).
 	csvs := htmlhelper.TablesToCSVs(string(data))
 	for _, csv := range csvs {
@@ -804,20 +805,25 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 				continue
 			}
 
+			// Get class IDs
 			matched := reArr["getClassID"].FindStringSubmatch(row[6])
 			if len(matched) != 2 {
 				return fmt.Errorf("Failed to get class ID")
 			}
 
-			classID := matched[1]
-			class, err := s.GetClass(classID)
-			if err != nil {
-				return fmt.Errorf("GetClass() error: %v", err)
-			}
-
-			//log.Printf("class: %v", class)
-			classFn(class)
+			classIDs = append(classIDs, matched[1])
 		}
+	}
+
+	log.Printf("classes len: %v", len(classIDs))
+	for _, ID := range classIDs {
+		class, err := s.GetClass(ID)
+		if err != nil {
+			return fmt.Errorf("GetClass() error: %v", err)
+		}
+
+		//log.Printf("class: %v", class)
+		classFn(class)
 	}
 
 	return nil
