@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
+	//"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -32,27 +33,12 @@ type Session struct {
 	urls map[string]*url.URL
 }
 
-// ClassEvent represents the class event of student.
-type ClassEvent struct {
-	// ClassInstanceId is the instance ID.
-	ClassInstanceId string
-	// CategoryId is the category ID(clazzid).
-	CategoryId string
-	// ClassName is the class name.
-	ClassName string
-	// Status is the status of event(e.g. "转出", "转入").
-	Status string
-	// BeginTime is the begin time of status.
-	BeginTime string
-	// EndTime is the end time of status.
-	EndTime string
-}
-
-type ClassSchedule struct {
-	// BeginDate is the begin date of the class.
-	BeginDate string
-	// EndDate is the end date of the class.
-	EndDate string
+// Class represents class information.
+type Class struct {
+	// Name is name of the class.
+	Name string
+	// Category is the category of the class.
+	Category string
 	// Teachers are the teachers of the class. One class can have multiple teachers.
 	Teachers []string
 	// ClassRoom is the class room of the class.
@@ -61,61 +47,32 @@ type ClassSchedule struct {
 	Period string
 }
 
-// Class represents class information.
-type Class struct {
-	// ClassId is the human readable ID of class.
-	ClassId string
-	// ClassName is the name of class.
-	ClassName string
-	// ClassInstanceId is the unique ID of class for internal use.
-	ClassInstanceId string
-	// CategoryId is category ID.
-	CategoryId string
-	// Status is the status of class(e.g. "可报名").
-	Status string
-	// Schedule represents the class schedule. See ClassSchedule type.
-	Schedule ClassSchedule
-}
-
-// Category represents the category information.
-type Category struct {
-	// Id is the category ID.
-	Id string
-	// Name is the category name.
-	Name string
-}
-
 // Student represeents the student information.
 type Student struct {
 	// Name is the name of student.
 	Name string
-	// SID is the human readable student ID.
-	SID string
-	// Status is the status of student.
-	Status string
 	// Comments stores the comments of the student.
 	Comments string
 	// PhoneNumber is the phone number of the contact for the student.
 	PhoneNumber string
-	// ReceiptNumber is the latest receipt number.
-	ReceiptNumber string
-	// ClassEvents stores the class events of the student.
-	ClassEvents []ClassEvent
 }
+
+// ClassHandler is the handler that a class is found while walking through the ming800.
+type ClassHandler func(class Class)
+
+// StudentHandler is the handler that a student is found while walking through the ming800.
+type StudentHandler func(class Class, student Student)
 
 var (
 	// rawurls contains actions' raw URLs.
 	rawurls = map[string]string{
-		"login":                "/j_spring_security_check",
-		"loginRedirect":        "/standard/mainController.controller",
-		"logout":               "/j_spring_security_logout",
-		"mainControlloer":      "/standard/mainController.controller",
-		"studentSearch":        "/edu/student/search.action",
-		"viewStudent":          "/edu/student/basicinfo/viewstudent.action",
-		"listCategoryAndClass": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForClazzInstance.action",
-		"viewCategory":         "/edu/base/clazz/viewClazz.action?clazz.id=",
-		"listStudentsOfClass":  "/edu/student/basicinfo/liststudentbyclazzinstance.action?clazzInstance.id=",
-		"viewClassSchedule":    "/course/schedule/viewScheduleClazzInstance.action?clazzInstance.id=",
+		"login":                    "/j_spring_security_check",
+		"loginRedirect":            "/standard/mainController.controller",
+		"logout":                   "/j_spring_security_logout",
+		"mainControlloer":          "/standard/mainController.controller",
+		"listCategoriesAndClasses": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForStudent.action",
+		"viewClass":                "edu/base/clazzInstance/viewClazzInstance.action?clazzInstance.id=",
+		"listStudentsOfClass":      "/edu/student/basicinfo/liststudentbyclazzinstance.action?clazzInstance.id=",
 	}
 )
 
@@ -219,6 +176,7 @@ end:
 	return err
 }
 
+/*
 // SearchStudent searches the student in ming800 by given search type and value.
 //
 // Params:
@@ -308,9 +266,9 @@ func getClassEventsOfStudent(records [][]string) (events []ClassEvent, err error
 		re := regexp.MustCompile(p)
 		matched := re.FindStringSubmatch(records[i][0])
 		if len(matched) == 4 {
-			e.ClassInstanceId = matched[1]
+			e.InstanceID = matched[1]
 			e.CategoryId = matched[2]
-			e.ClassName = html.UnescapeString(matched[3])
+			e.Name = html.UnescapeString(matched[3])
 		}
 
 		p = `^(\S+)(\d{4}-\d{2}-\d{2}) 00:00:00.0&nbsp;&nbsp;(\d{4}-\d{2}-\d{2})?`
@@ -541,12 +499,12 @@ func (s *Session) getClasses(data string) (classes []Class, err error) {
 				goto end
 			}
 
-			c.ClassName = strings.Replace(matched[3], " 00:00:00.0", "", -1)
-			c.ClassInstanceId = matched[1]
+			c.Name = strings.Replace(matched[3], " 00:00:00.0", "", -1)
+			c.InstanceID = matched[1]
 			c.CategoryId = matched[2]
 
 			c.Status = row[3]
-			if c.Schedule, err = s.GetClassSchedule(c.ClassInstanceId); err != nil {
+			if c.Schedule, err = s.GetClassSchedule(c.InstanceID); err != nil {
 				goto end
 			}
 
@@ -728,7 +686,7 @@ func (s *Session) GetCurrentStudents() (students []Student, err error) {
 
 	for _, class := range classes {
 		studentsOfClass := []Student{}
-		if studentsOfClass, err = s.GetStudentsOfClass(class.ClassInstanceId); err != nil {
+		if studentsOfClass, err = s.GetStudentsOfClass(class.InstanceID); err != nil {
 			goto end
 		}
 
@@ -736,4 +694,131 @@ func (s *Session) GetCurrentStudents() (students []Student, err error) {
 	}
 end:
 	return students, err
+}
+*/
+
+// GetClass gets the class info by given class ID.
+func (s *Session) GetClass(ID string) (Class, error) {
+	var (
+		err   error
+		class Class
+	)
+
+	if !s.LoggedIn {
+		return class, fmt.Errorf("Not logged in")
+	}
+
+	urlStr := fmt.Sprintf("%v%v", s.urls["viewClass"].String(), ID)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return class, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return class, err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return class, err
+	}
+
+	csvs := htmlhelper.TablesToCSVs(string(data))
+	/*for i, csv := range csvs {
+		for j, row := range csv {
+			log.Printf("i: %v, j: %v, row(l=%v): %v", i, j, len(row), row)
+		}
+	}*/
+
+	if len(csvs) != 2 {
+		return class, fmt.Errorf("no class tables found")
+	}
+
+	class.Category = strings.TrimRight(html.UnescapeString(csvs[0][1][1]), `(普通)`)
+	class.Name = html.UnescapeString(csvs[0][2][1])
+
+	// Skip if table 2 is empty.
+	if len(csvs[1]) != 2 {
+		return class, nil
+	}
+
+	// Get teachers.
+	str := strings.TrimRight(html.UnescapeString(csvs[1][1][6]), `<br>`)
+	class.Teachers = strings.Split(str, `<br>`)
+
+	class.ClassRoom = html.UnescapeString(csvs[1][1][7])
+
+	// Get period.
+	p := `^\S+\d{2}:\d{2}-\d{2}:\d{2}`
+	re := regexp.MustCompile(p)
+	class.Period = re.FindString(csvs[1][1][8])
+
+	return class, nil
+}
+
+// Walk walks through the ming800.
+func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
+	var (
+		err error
+	)
+
+	if !s.LoggedIn {
+		return fmt.Errorf("Not logged in")
+	}
+
+	req, err := http.NewRequest("GET", s.urls["listCategoriesAndClasses"].String(), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	// Pattern to find class name.
+	patterns := map[string]string{
+		"getClassName": `>(.*)</a>$`,
+		"getClassID":   `clazzInstance\.id=(\d+)&action=view`,
+	}
+
+	// Compile regexps by given patterns.
+	reArr := map[string]*regexp.Regexp{}
+	for k, v := range patterns {
+		reArr[k] = regexp.MustCompile(v)
+	}
+
+	// Parse HTML response to get tables(CSV).
+	csvs := htmlhelper.TablesToCSVs(string(data))
+	for _, csv := range csvs {
+		for j, row := range csv {
+			if j == 0 {
+				continue
+			}
+
+			matched := reArr["getClassID"].FindStringSubmatch(row[6])
+			if len(matched) != 2 {
+				return fmt.Errorf("Failed to get class ID")
+			}
+
+			classID := matched[1]
+			class, err := s.GetClass(classID)
+			if err != nil {
+				return fmt.Errorf("GetClass() error: %v", err)
+			}
+
+			//log.Printf("class: %v", class)
+			classFn(class)
+		}
+	}
+
+	return nil
 }
