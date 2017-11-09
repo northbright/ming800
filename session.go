@@ -52,8 +52,8 @@ type Class struct {
 type Student struct {
 	// Name is the name of student.
 	Name string
-	// PhoneNumber is the phone number of the contact for the student.
-	PhoneNumber string
+	// MobilePhoneNum is the phone number of the contact for the student.
+	MobilePhoneNum string
 }
 
 // ClassHandler is the handler that a class is found while walking through the ming800.
@@ -249,8 +249,8 @@ func (s *Session) SearchStudentByName(name string) (ids []string, err error) {
 	return s.SearchStudent("byName", name)
 }
 
-// SearchStudentByPhoneNumber searches student by phone number.
-func (s *Session) SearchStudentByPhoneNumber(phoneNumber string) (ids []string, err error) {
+// SearchStudentByMobilePhoneNum searches student by phone number.
+func (s *Session) SearchStudentByMobilePhoneNum(phoneNumber string) (ids []string, err error) {
 	return s.SearchStudent("byEmail", phoneNumber)
 }
 
@@ -302,7 +302,7 @@ func getStudent(data string) (student Student, err error) {
 	re = regexp.MustCompile(p)
 	matched = re.FindStringSubmatch(csvs[1][1][1])
 	if len(matched) == 2 {
-		student.PhoneNumber = matched[1]
+		student.MobilePhoneNum = matched[1]
 	}
 	student.ReceiptNumber = csvs[2][1][1]
 
@@ -738,7 +738,7 @@ func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) 
 			return fmt.Errorf("failed to find student name")
 		}
 		s.Name = html.UnescapeString(matched[1])
-		s.PhoneNumber = html.UnescapeString(row[3])
+		s.MobilePhoneNum = html.UnescapeString(row[3])
 
 		studentFn(class, s)
 	}
