@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"html"
 	"io/ioutil"
-	//	"log"
+	//"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/northbright/htmlhelper"
@@ -51,8 +52,6 @@ type Class struct {
 type Student struct {
 	// Name is the name of student.
 	Name string
-	// Comments stores the comments of the student.
-	Comments string
 	// PhoneNumber is the phone number of the contact for the student.
 	PhoneNumber string
 }
@@ -697,6 +696,103 @@ end:
 }
 */
 
+func getPageCountForStudentsOfClass(content string) int {
+	var count int
+
+	p := `共(\d+)页`
+	re := regexp.MustCompile(p)
+
+	matched := re.FindStringSubmatch(content)
+	if len(matched) != 2 {
+		return 0
+	}
+
+	count, _ = strconv.Atoi(matched[1])
+	return count
+}
+
+func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) error {
+	csvs := htmlhelper.TablesToCSVs(content)
+	// Skip if no students.
+	if len(csvs) != 1 {
+		return nil
+	}
+
+	p := `">(.*)</a>`
+	re := regexp.MustCompile(p)
+
+	table := csvs[0]
+	for i, row := range table {
+		if i == 0 {
+			continue
+		}
+
+		if len(row) != 9 {
+			return fmt.Errorf("failed to parse student info")
+		}
+
+		s := Student{}
+
+		matched := re.FindStringSubmatch(row[0])
+		if len(matched) != 2 {
+			return fmt.Errorf("failed to find student name")
+		}
+		s.Name = html.UnescapeString(matched[1])
+		s.PhoneNumber = html.UnescapeString(row[3])
+
+		studentFn(class, s)
+	}
+
+	return nil
+}
+
+func (s *Session) WalkStudentsOfClass(classID string, class Class, pageIndex int, studentFn StudentHandler) error {
+	var (
+		err error
+	)
+
+	if !s.LoggedIn {
+		return fmt.Errorf("Not logged in")
+	}
+
+	urlStr := fmt.Sprintf("%v%v%v%v", s.urls["listStudentsOfClass"].String(), classID, "&pageEntity.pageIndex=", pageIndex)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	content := string(data)
+	if err = walkStudentsOfClass(content, class, studentFn); err != nil {
+		return err
+	}
+
+	// If it's first page( page index is 1 for ming800),
+	// get indexes of next pages and walk them.
+	// Skip for next pages.
+	if pageIndex <= 1 {
+		pageCount := getPageCountForStudentsOfClass(content)
+
+		for i := 1; i < pageCount; i++ {
+			if err = s.WalkStudentsOfClass(classID, class, i+1, studentFn); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // GetClass gets the class info by given class ID.
 func (s *Session) GetClass(ID string) (Class, error) {
 	var (
@@ -810,13 +906,19 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 				return fmt.Errorf("Failed to get class ID")
 			}
 
-			// matched[1] is class ID.
+			classID := matched[1]
 			// Get class data by ID.
-			class, err := s.GetClass(ID)
+			class, err := s.GetClass(classID)
 			if err != nil {
 				return fmt.Errorf("GetClass() error: %v", err)
 			}
 			classFn(class)
+
+			// Walk students of class.
+			if err = s.WalkStudentsOfClass(classID, class, 1, studentFn); err != nil {
+				return fmt.Errorf("WalkStudentsOfClass() error: %v", err)
+			}
+
 		}
 	}
 
