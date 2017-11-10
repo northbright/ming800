@@ -175,6 +175,7 @@ end:
 	return err
 }
 
+// getPageCountForStudentsOfClass parses the HTTP response and find the page count for students of the class.
 func getPageCountForStudentsOfClass(content string) int {
 	var count int
 
