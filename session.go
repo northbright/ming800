@@ -103,11 +103,12 @@ end:
 
 // Login performs the login action.
 func (s *Session) Login() (err error) {
-	var req *http.Request
-	var resp *http.Response
-	var v url.Values = url.Values{}
-	var respCookies []*http.Cookie
-
+	var (
+		req         *http.Request
+		resp        *http.Response
+		v           url.Values
+		respCookies []*http.Cookie
+	)
 	// Login.
 	v.Set("dispatcher", "bpm")
 	v.Set("j_username", fmt.Sprintf("%s,%s", s.User, s.Company))
@@ -129,13 +130,13 @@ func (s *Session) Login() (err error) {
 	defer resp.Body.Close()
 
 	if !strings.HasSuffix(resp.Header.Get("Location"), rawurls["loginRedirect"]) {
-		err = fmt.Errorf("Login redirect URL does not match. Login failed(user name and password do not match.")
+		err = fmt.Errorf("login redirect URL does not match. login failed: user name and password do not match")
 		goto end
 	}
 
 	respCookies = resp.Cookies()
 	if len(respCookies) != 1 || respCookies[0].Name != "JSESSIONID" {
-		err = fmt.Errorf("Failed to get JSESSIONID in response cookies.")
+		err = fmt.Errorf("failed to get JSESSIONID in response cookies")
 		goto end
 	}
 
@@ -149,8 +150,10 @@ end:
 
 // Logout performs the log out action.
 func (s *Session) Logout() (err error) {
-	var req *http.Request
-	var resp *http.Response
+	var (
+		req  *http.Request
+		resp *http.Response
+	)
 
 	if !s.LoggedIn {
 		goto end
