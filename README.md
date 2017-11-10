@@ -14,9 +14,9 @@ ming800是一个[Golang](https://golang.org)包，提供适用于旧单机版本
 * 抓取网页结果，并且使用正则表达式得到数据。
 
 #### 功能
-* 获取当前所有专业与开设班级，以及每个班级的学生信息。
+* 迭代当前所有专业与开设班级，以及每个班级的学生信息。
 
-#### 例子（迭代ming800的所有年级，班级，学生信息）
+#### 例子：迭代ming800的所有年级，班级，学生信息
 
         // New a session
         s, _ := ming800.NewSession(ServerURL, Company, User, Password); err != nil {
