@@ -11,14 +11,6 @@ import (
 	"github.com/northbright/pathhelper"
 )
 
-func classHandler(class ming800.Class) {
-	log.Printf("class: %v", class)
-}
-
-func studentHandler(class ming800.Class, student ming800.Student) {
-	log.Printf("class: %v, student: %v", class, student)
-}
-
 // Run "go test -c && ./ming800.test" to load config.json and do the test.
 func Example() {
 	// 1. Create a "config.json" like this to load settings:
@@ -81,6 +73,16 @@ func Example() {
 	log.Printf("Login() successfully.\n")
 
 	// Walk
+	// Write your own class and student handler functions.
+	classHandler := func(class ming800.Class) {
+		log.Printf("class: %v", class)
+	}
+
+	studentHandler := func(class ming800.Class, student ming800.Student) {
+		log.Printf("class: %v, student: %v", class, student)
+	}
+
+	// Class and student handler will be called while walking ming800.
 	if err = s.Walk(classHandler, studentHandler); err != nil {
 		err = fmt.Errorf("Walk() error: %v", err)
 		return
