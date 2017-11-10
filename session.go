@@ -225,7 +225,7 @@ func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) 
 	return nil
 }
 
-func (s *Session) WalkStudentsOfClass(classID string, class Class, pageIndex int, studentFn StudentHandler) error {
+func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int, studentFn StudentHandler) error {
 	var (
 		err error
 	)
@@ -263,7 +263,7 @@ func (s *Session) WalkStudentsOfClass(classID string, class Class, pageIndex int
 		pageCount := getPageCountForStudentsOfClass(content)
 
 		for i := 1; i < pageCount; i++ {
-			if err = s.WalkStudentsOfClass(classID, class, i+1, studentFn); err != nil {
+			if err = s.walkStudentsOfClass(classID, class, i+1, studentFn); err != nil {
 				return err
 			}
 		}
@@ -394,8 +394,8 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 			classFn(class)
 
 			// Walk students of class.
-			if err = s.WalkStudentsOfClass(classID, class, 1, studentFn); err != nil {
-				return fmt.Errorf("WalkStudentsOfClass() error: %v", err)
+			if err = s.walkStudentsOfClass(classID, class, 1, studentFn); err != nil {
+				return fmt.Errorf("walkStudentsOfClass() error: %v", err)
 			}
 
 		}
