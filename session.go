@@ -308,12 +308,6 @@ func (s *Session) getClass(ID string) (Class, error) {
 	}
 
 	csvs := htmlhelper.TablesToCSVs(string(data))
-	/*for i, csv := range csvs {
-		for j, row := range csv {
-			log.Printf("i: %v, j: %v, row(l=%v): %v", i, j, len(row), row)
-		}
-	}*/
-
 	if len(csvs) != 2 {
 		return class, fmt.Errorf("no class tables found")
 	}
