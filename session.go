@@ -44,8 +44,9 @@ type Class struct {
 	Teachers []string
 	// ClassRoom is the class room of the class.
 	ClassRoom string
-	// Period is the period of the class.
-	Period string
+	// Periods are the periods of the class.
+	// One class may have 2 or more periods.
+	Periods []string
 }
 
 // Student represeents the student information.
@@ -106,10 +107,10 @@ func (s *Session) Login() (err error) {
 	var (
 		req         *http.Request
 		resp        *http.Response
-		v           url.Values
 		respCookies []*http.Cookie
 	)
 	// Login.
+	v := url.Values{}
 	v.Set("dispatcher", "bpm")
 	v.Set("j_username", fmt.Sprintf("%s,%s", s.User, s.Company))
 	v.Set("j_yey", s.Company)
@@ -279,6 +280,21 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 	return nil
 }
 
+func getPeriods(content string) []string {
+	var periods []string
+
+	arr := strings.Split(strings.TrimRight(content, `<br>`), `<br>`)
+	p := `^\S+\d{2}:\d{2}-\d{2}:\d{2}`
+
+	re := regexp.MustCompile(p)
+	for _, v := range arr {
+		if period := re.FindString(v); period != "" {
+			periods = append(periods, period)
+		}
+	}
+	return periods
+}
+
 // getClass gets the class info by given class ID.
 func (s *Session) getClass(ID string) (Class, error) {
 	var (
@@ -326,10 +342,8 @@ func (s *Session) getClass(ID string) (Class, error) {
 
 	class.ClassRoom = html.UnescapeString(csvs[1][1][7])
 
-	// Get period.
-	p := `^\S+\d{2}:\d{2}-\d{2}:\d{2}`
-	re := regexp.MustCompile(p)
-	class.Period = re.FindString(csvs[1][1][8])
+	// Get periods.
+	class.Periods = getPeriods(csvs[1][1][8])
 
 	return class, nil
 }
