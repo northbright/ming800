@@ -225,6 +225,7 @@ func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) 
 	return nil
 }
 
+// walkStudentsOfClass walks the students of given class.
 func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int, studentFn StudentHandler) error {
 	var (
 		err error
