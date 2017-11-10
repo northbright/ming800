@@ -272,8 +272,8 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 	return nil
 }
 
-// GetClass gets the class info by given class ID.
-func (s *Session) GetClass(ID string) (Class, error) {
+// getClass gets the class info by given class ID.
+func (s *Session) getClass(ID string) (Class, error) {
 	var (
 		err   error
 		class Class
@@ -387,9 +387,9 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 
 			classID := matched[1]
 			// Get class data by ID.
-			class, err := s.GetClass(classID)
+			class, err := s.getClass(classID)
 			if err != nil {
-				return fmt.Errorf("GetClass() error: %v", err)
+				return fmt.Errorf("getClass() error: %v", err)
 			}
 			classFn(class)
 
