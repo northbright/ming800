@@ -190,6 +190,8 @@ func getPageCountForStudentsOfClass(content string) int {
 	return count
 }
 
+// walkStudentsOfClass is the internal implementation for Session.walkStudentsOfClass.
+// It parses the HTTP response body to walk students of the class.
 func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) error {
 	csvs := htmlhelper.TablesToCSVs(content)
 	// Skip if no students.
