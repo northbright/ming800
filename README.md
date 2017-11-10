@@ -19,16 +19,10 @@ ming800是一个[Golang](https://golang.org)包，提供适用于旧单机版本
 #### 例子（迭代ming800的所有年级，班级，学生信息）
 
         // New a session
-        if s, err = ming800.NewSession(ServerURL, Company, User, Password); err != nil {
-                err = fmt.Errorf("NewSession() error: %v", err)
-                return
-        }
+        s, _ := ming800.NewSession(ServerURL, Company, User, Password); err != nil {
 
         // Login
-        if err = s.Login(); err != nil {
-                err = fmt.Errorf("Login() error: %v", err)
-                return
-        }
+        s.Login()
 
         // Walk
         // Write your own class and student handler functions.
@@ -41,17 +35,10 @@ ming800是一个[Golang](https://golang.org)包，提供适用于旧单机版本
         }
 
         // Class and student handler will be called while walking ming800.
-        if err = s.Walk(classHandler, studentHandler); err != nil {
-                err = fmt.Errorf("Walk() error: %v", err)
-                return
-        }
+        s.Walk(classHandler, studentHandler)
 
         // Logout
-        if err = s.Logout(); err != nil {
-                err = fmt.Errorf("Logout() error: %v", err)
-                return
-        }
- 
+        s.Logout()
 
 #### 文档
 * [API References](https://godoc.org/github.com/northbright/ming800)
