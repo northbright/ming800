@@ -280,6 +280,8 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 	return nil
 }
 
+// getPeriods parse the HTTP response body to get the class periods.
+// One class may have one or more periods.
 func getPeriods(content string) []string {
 	var periods []string
 
