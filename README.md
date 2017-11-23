@@ -18,6 +18,18 @@ ming800是一个[Golang](https://golang.org)包，提供适用于旧单机版本
 
 #### 例子：迭代ming800的所有年级，班级，学生信息
 
+        // MyProcessor implements ming800.Processor interface to walk ming800.
+        type MyProcessor struct {
+        }
+
+        func (p *MyProcessor) ClassHandler(class ming800.Class) {
+                log.Printf("class: %v", class)
+        }
+
+        func (p *MyProcessor) StudentHandler(class ming800.Class, student ming800.Student) {
+                log.Printf("class: %v, student: %v", class, student)
+        }
+
         // New a session
         s, _ := ming800.NewSession(ServerURL, Company, User, Password); err != nil {
 
@@ -25,17 +37,8 @@ ming800是一个[Golang](https://golang.org)包，提供适用于旧单机版本
         s.Login()
 
         // Walk
-        // Write your own class and student handler functions.
-        classHandler := func(class ming800.Class) {
-                log.Printf("class: %v", class)
-        }
-
-        studentHandler := func(class ming800.Class, student ming800.Student) {
-                log.Printf("class: %v, student: %v", class, student)
-        }
-
-        // Class and student handler will be called while walking ming800.
-        s.Walk(classHandler, studentHandler)
+        processor := &MyProcessor{}
+        s.Walk(processor)
 
         // Logout
         s.Logout()
