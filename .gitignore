@@ -1,5 +1,18 @@
-*.test
+# Ignore all
+*
+# Unignore all sub dirs
+!*/
+!.gitignore
+!LICENSE
+!*.md
+!*.go
+!*.json
 config.json
-example/server/config.json.bk
-example/server/server.exe
-example/server/server
+# For HTML
+!*.html
+!*.js
+!*.css
+!*.jpg
+!*.png
+!*.gif
+

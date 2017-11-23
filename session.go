@@ -63,6 +63,11 @@ type ClassHandler func(class Class)
 // StudentHandler is the handler that a student is found while walking through the ming800.
 type StudentHandler func(class Class, student Student)
 
+type WalkProcessor interface {
+	ClassHandler(class Class)
+	StudentHandler(class Class, student Student)
+}
+
 var (
 	// rawurls contains actions' raw URLs.
 	rawurls = map[string]string{
@@ -197,7 +202,7 @@ func getPageCountForStudentsOfClass(content string) int {
 
 // walkStudentsOfClass is the internal implementation for Session.walkStudentsOfClass.
 // It parses the HTTP response body to walk students of the class.
-func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) error {
+func walkStudentsOfClass(content string, class Class, processor WalkProcessor) error {
 	csvs := htmlhelper.TablesToCSVs(content)
 	// Skip if no students.
 	if len(csvs) != 1 {
@@ -226,14 +231,14 @@ func walkStudentsOfClass(content string, class Class, studentFn StudentHandler) 
 		s.Name = html.UnescapeString(matched[1])
 		s.PhoneNum = html.UnescapeString(row[3])
 
-		studentFn(class, s)
+		processor.StudentHandler(class, s)
 	}
 
 	return nil
 }
 
 // walkStudentsOfClass walks the students of given class.
-func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int, studentFn StudentHandler) error {
+func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int, processor WalkProcessor) error {
 	var (
 		err error
 	)
@@ -260,7 +265,7 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 	}
 
 	content := string(data)
-	if err = walkStudentsOfClass(content, class, studentFn); err != nil {
+	if err = walkStudentsOfClass(content, class, processor); err != nil {
 		return err
 	}
 
@@ -271,7 +276,7 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 		pageCount := getPageCountForStudentsOfClass(content)
 
 		for i := 1; i < pageCount; i++ {
-			if err = s.walkStudentsOfClass(classID, class, i+1, studentFn); err != nil {
+			if err = s.walkStudentsOfClass(classID, class, i+1, processor); err != nil {
 				return err
 			}
 		}
@@ -351,7 +356,7 @@ func (s *Session) getClass(ID string) (Class, error) {
 }
 
 // Walk walks through the ming800.
-func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
+func (s *Session) Walk(processor WalkProcessor) error {
 	var (
 		err error
 	)
@@ -408,13 +413,12 @@ func (s *Session) Walk(classFn ClassHandler, studentFn StudentHandler) error {
 			if err != nil {
 				return fmt.Errorf("getClass() error: %v", err)
 			}
-			classFn(class)
+			processor.ClassHandler(class)
 
 			// Walk students of class.
-			if err = s.walkStudentsOfClass(classID, class, 1, studentFn); err != nil {
+			if err = s.walkStudentsOfClass(classID, class, 1, processor); err != nil {
 				return fmt.Errorf("walkStudentsOfClass() error: %v", err)
 			}
-
 		}
 	}
 
