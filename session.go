@@ -57,12 +57,6 @@ type Student struct {
 	PhoneNum string
 }
 
-// ClassHandler is the handler that a class is found while walking through the ming800.
-type ClassHandler func(class Class)
-
-// StudentHandler is the handler that a student is found while walking through the ming800.
-type StudentHandler func(class Class, student Student)
-
 type WalkProcessor interface {
 	ClassHandler(class Class)
 	StudentHandler(class Class, student Student)
