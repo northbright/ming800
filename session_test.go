@@ -11,13 +11,6 @@ import (
 	"github.com/northbright/pathhelper"
 )
 
-type Config struct {
-	ServerURL string `json:"server_url"`
-	Company   string `json:"company"`
-	User      string `json:"user"`
-	Password  string `json:"password"`
-}
-
 // MyProcessor implements ming800.Processor interface to walk ming800.
 type MyProcessor struct {
 }
