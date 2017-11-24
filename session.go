@@ -57,8 +57,11 @@ type Student struct {
 	PhoneNum string
 }
 
+// WalkProcessor interface need users to implement callback functions while walking ming800.
 type WalkProcessor interface {
+	// ClassHandler is the callback when a class is found.
 	ClassHandler(class Class)
+	// StudentHandler is the callback when a student is found.
 	StudentHandler(class Class, student Student)
 }
 
