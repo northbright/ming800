@@ -29,7 +29,7 @@ func (p *MyProcessor) ClassHandler(class ming800.Class) {}
 
 // StudentHandler is the handler when a student is found.
 func (p *MyProcessor) StudentHandler(class ming800.Class, student ming800.Student) {
-	if !validate.ValidMobilePhoneNum(student.PhoneNum) {
+	if !validate.ValidMobilePhoneNumInChina(student.PhoneNum) {
 		row := []string{class.Name, student.Name, student.PhoneNum}
 		log.Printf("%s,%s,%s", row[0], row[1], row[2])
 	}
