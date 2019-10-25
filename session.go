@@ -51,10 +51,14 @@ type Class struct {
 
 // Student represeents the student information.
 type Student struct {
+	// ID is the internal ID of student.
+	ID string
 	// Name is the name of student.
 	Name string
 	// PhoneNum is the phone number of the contact for the student.
 	PhoneNum string
+	// Details store student information in key-value map.
+	Details map[string]string
 }
 
 // WalkProcessor interface need users to implement callback functions while walking ming800.
@@ -75,6 +79,7 @@ var (
 		"listCategoriesAndClasses": "/edu/base/clazzInstance/listCategoryAndClazzInstanceForStudent.action",
 		"viewClass":                "edu/base/clazzInstance/viewClazzInstance.action?clazzInstance.id=",
 		"listStudentsOfClass":      "/edu/student/basicinfo/liststudentbyclazzinstance.action?clazzInstance.id=",
+		"viewStudent":              "/edu/student/basicinfo/viewstudent.action?student.id=",
 	}
 )
 
@@ -197,16 +202,17 @@ func getPageCountForStudentsOfClass(content string) int {
 	return count
 }
 
-// walkStudentsOfClass is the internal implementation for Session.walkStudentsOfClass.
+// walkStudentsOfClassOfOnePage is the internal implementation for Session.walkStudentsOfClass.
 // It parses the HTTP response body to walk students of the class.
-func walkStudentsOfClass(content string, class Class, processor WalkProcessor) error {
+func (s *Session) walkStudentsOfClassOfOnePage(content string, class Class, processor WalkProcessor) error {
 	csvs := htmlhelper.TablesToCSVs(content)
 	// Skip if no students.
 	if len(csvs) != 1 {
 		return nil
 	}
 
-	p := `">(.*)</a>`
+	// First () catches student ID, second () catches student name.
+	p := `student.id=(.+?)&.*">(.*)</a>`
 	re := regexp.MustCompile(p)
 
 	table := csvs[0]
@@ -219,16 +225,20 @@ func walkStudentsOfClass(content string, class Class, processor WalkProcessor) e
 			return fmt.Errorf("failed to parse student info")
 		}
 
-		s := Student{}
+		student := Student{}
 
 		matched := re.FindStringSubmatch(row[0])
-		if len(matched) != 2 {
+		if len(matched) != 3 {
 			return fmt.Errorf("failed to find student name")
 		}
-		s.Name = html.UnescapeString(matched[1])
-		s.PhoneNum = html.UnescapeString(row[3])
+		student.ID = html.UnescapeString(matched[1])
+		student.Name = html.UnescapeString(matched[2])
+		student.PhoneNum = html.UnescapeString(row[3])
 
-		processor.StudentHandler(class, s)
+		// Get student details include customized column(e.g. ID card No).
+		student.Details, _ = s.GetStudentDetails(student.ID)
+
+		processor.StudentHandler(class, student)
 	}
 
 	return nil
@@ -262,7 +272,7 @@ func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int
 	}
 
 	content := string(data)
-	if err = walkStudentsOfClass(content, class, processor); err != nil {
+	if err = s.walkStudentsOfClassOfOnePage(content, class, processor); err != nil {
 		return err
 	}
 
@@ -420,4 +430,62 @@ func (s *Session) Walk(processor WalkProcessor) error {
 	}
 
 	return nil
+}
+
+// GetViewStudentURL returns the URL of view student which response contains details of the student include customized column(e.g. ID card number).
+func (s *Session) GetViewStudentURL(ID string) string {
+	return fmt.Sprintf("%s%s", s.urls["viewStudent"].String(), ID)
+}
+
+func (s *Session) GetStudentDetails(ID string) (map[string]string, error) {
+	var (
+		err     error
+		details = map[string]string{}
+	)
+
+	if !s.LoggedIn {
+		return nil, fmt.Errorf("Not logged in")
+	}
+
+	urlStr := s.GetViewStudentURL(ID)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert HTML tables to CSV.
+	csvs := htmlhelper.TablesToCSVs(string(data))
+	for _, csv := range csvs {
+		for _, row := range csv {
+			// Check if column number is even number.
+			// Columns can be converted into a key-value map.
+			nColumns := len(row)
+			if nColumns%2 != 0 {
+				continue
+			}
+
+			for i := 0; i < nColumns; i += 2 {
+				k := htmlhelper.RemoveAllElements(row[i])
+				k = html.UnescapeString(k)
+
+				v := htmlhelper.RemoveAllElements(row[i+1])
+				v = html.UnescapeString(v)
+
+				details[k] = v
+			}
+		}
+	}
+
+	return details, nil
 }
