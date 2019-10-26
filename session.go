@@ -64,9 +64,9 @@ type Student struct {
 // WalkProcessor interface need users to implement callback functions while walking ming800.
 type WalkProcessor interface {
 	// ClassHandler is the callback when a class is found.
-	ClassHandler(class Class)
+	ClassHandler(class Class) error
 	// StudentHandler is the callback when a student is found.
-	StudentHandler(class Class, student Student)
+	StudentHandler(class Class, student Student) error
 }
 
 var (
@@ -205,6 +205,7 @@ func getPageCountForStudentsOfClass(content string) int {
 // walkStudentsOfClassOfOnePage is the internal implementation for Session.walkStudentsOfClass.
 // It parses the HTTP response body to walk students of the class.
 func (s *Session) walkStudentsOfClassOfOnePage(content string, class Class, processor WalkProcessor) error {
+	var err error
 	csvs := htmlhelper.TablesToCSVs(content)
 	// Skip if no students.
 	if len(csvs) != 1 {
@@ -236,9 +237,14 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class Class, proc
 		student.PhoneNum = html.UnescapeString(row[3])
 
 		// Get student details include customized column(e.g. ID card No).
-		student.Details, _ = s.GetStudentDetails(student.ID)
+		student.Details, err = s.GetStudentDetails(student.ID)
+		if err != nil {
+			return fmt.Errorf("GetStudentDetails() error: %v\n", err)
+		}
 
-		processor.StudentHandler(class, student)
+		if err = processor.StudentHandler(class, student); err != nil {
+			return fmt.Errorf("StudentHandler() error: %v", err)
+		}
 	}
 
 	return nil
@@ -420,7 +426,11 @@ func (s *Session) Walk(processor WalkProcessor) error {
 			if err != nil {
 				return fmt.Errorf("getClass() error: %v", err)
 			}
-			processor.ClassHandler(class)
+
+			// Walk class
+			if err = processor.ClassHandler(class); err != nil {
+				return fmt.Errorf("ClassHandler() error: %v", err)
+			}
 
 			// Walk students of class.
 			if err = s.walkStudentsOfClass(classID, class, 1, processor); err != nil {

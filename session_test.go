@@ -15,12 +15,14 @@ import (
 type MyProcessor struct {
 }
 
-func (p *MyProcessor) ClassHandler(class ming800.Class) {
+func (p *MyProcessor) ClassHandler(class ming800.Class) error {
 	log.Printf("class: %v", class)
+	return nil
 }
 
-func (p *MyProcessor) StudentHandler(class ming800.Class, student ming800.Student) {
+func (p *MyProcessor) StudentHandler(class ming800.Class, student ming800.Student) error {
 	log.Printf("class: %v, student: %v", class, student)
+	return nil
 }
 
 // Run "go test -c && ./ming800.test" to load config.json and do the test.
