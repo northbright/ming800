@@ -64,9 +64,9 @@ type Student struct {
 // WalkProcessor interface need users to implement callback functions while walking ming800.
 type WalkProcessor interface {
 	// ClassHandler is the callback when a class is found.
-	ClassHandler(class Class) error
+	ClassHandler(class *Class) error
 	// StudentHandler is the callback when a student is found.
-	StudentHandler(class Class, student Student) error
+	StudentHandler(class *Class, student *Student) error
 }
 
 var (
@@ -202,48 +202,85 @@ func getPageCountForStudentsOfClass(content string) int {
 	return count
 }
 
+func (s *Session) getStudent(row []string) (*Student, error) {
+	var err error
+
+	// First () catches student ID, second () catches student name.
+	p := `student.id=(.+?)&.*">(.*)</a>`
+	re := regexp.MustCompile(p)
+
+	if len(row) != 9 {
+		return nil, fmt.Errorf("failed to parse student info")
+	}
+
+	student := &Student{}
+
+	matched := re.FindStringSubmatch(row[0])
+	if len(matched) != 3 {
+		return nil, fmt.Errorf("failed to find student name")
+	}
+	student.ID = html.UnescapeString(matched[1])
+	student.Name = html.UnescapeString(matched[2])
+	student.PhoneNum = html.UnescapeString(row[3])
+
+	// Get student details include customized column(e.g. ID card No).
+	student.Details, err = s.GetStudentDetails(student.ID)
+	if err != nil {
+		return nil, fmt.Errorf("GetStudentDetails() error: %v\n", err)
+	}
+
+	return student, nil
+}
+
 // walkStudentsOfClassOfOnePage is the internal implementation for Session.walkStudentsOfClass.
 // It parses the HTTP response body to walk students of the class.
-func (s *Session) walkStudentsOfClassOfOnePage(content string, class Class, processor WalkProcessor) error {
-	var err error
+func (s *Session) walkStudentsOfClassOfOnePage(content string, class *Class, processor WalkProcessor) error {
 	csvs := htmlhelper.TablesToCSVs(content)
 	// Skip if no students.
 	if len(csvs) != 1 {
 		return nil
 	}
 
-	// First () catches student ID, second () catches student name.
-	p := `student.id=(.+?)&.*">(.*)</a>`
-	re := regexp.MustCompile(p)
-
 	table := csvs[0]
-	for i, row := range table {
-		if i == 0 {
-			continue
-		}
+	nRow := len(table)
 
-		if len(row) != 9 {
-			return fmt.Errorf("failed to parse student info")
-		}
+	concurrency := 30
+	sem := make(chan struct{}, concurrency)
+	// Make a buffered channel to store returned errors from goroutines.
+	chError := make(chan error, nRow-1)
 
-		student := Student{}
+	for i := 1; i < nRow; i++ {
+		row := table[i]
+		// After first "concurrency" amount of goroutines started,
+		// It'll block starting new goroutines until one running goroutine finishs.
+		sem <- struct{}{}
 
-		matched := re.FindStringSubmatch(row[0])
-		if len(matched) != 3 {
-			return fmt.Errorf("failed to find student name")
-		}
-		student.ID = html.UnescapeString(matched[1])
-		student.Name = html.UnescapeString(matched[2])
-		student.PhoneNum = html.UnescapeString(row[3])
+		go func(i int) {
+			defer func() { <-sem }()
 
-		// Get student details include customized column(e.g. ID card No).
-		student.Details, err = s.GetStudentDetails(student.ID)
-		if err != nil {
-			return fmt.Errorf("GetStudentDetails() error: %v\n", err)
-		}
+			student, err := s.getStudent(row)
+			if err == nil {
+				err = processor.StudentHandler(class, student)
+			}
 
-		if err = processor.StudentHandler(class, student); err != nil {
-			return fmt.Errorf("StudentHandler() error: %v", err)
+			chError <- err
+		}(i)
+	}
+
+	// After last goroutine is started,
+	// there're still "concurrency" amount of goroutines running.
+	// Make sure wait all goroutines to finish.
+	for j := 0; j < cap(sem); j++ {
+		sem <- struct{}{}
+	}
+
+	// Close the error channel.
+	close(chError)
+
+	// Check errors returned from goroutines.
+	for e := range chError {
+		if e != nil {
+			return fmt.Errorf("getStudent() or processor.StudentHandler() error: %v", e)
 		}
 	}
 
@@ -251,7 +288,7 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class Class, proc
 }
 
 // walkStudentsOfClass walks the students of given class.
-func (s *Session) walkStudentsOfClass(classID string, class Class, pageIndex int, processor WalkProcessor) error {
+func (s *Session) walkStudentsOfClass(classID string, class *Class, pageIndex int, processor WalkProcessor) error {
 	var (
 		err error
 	)
@@ -316,36 +353,36 @@ func getPeriods(content string) []string {
 }
 
 // getClass gets the class info by given class ID.
-func (s *Session) getClass(ID string) (Class, error) {
+func (s *Session) getClass(ID string) (*Class, error) {
 	var (
 		err   error
 		class Class
 	)
 
 	if !s.LoggedIn {
-		return class, fmt.Errorf("Not logged in")
+		return nil, fmt.Errorf("Not logged in")
 	}
 
 	urlStr := fmt.Sprintf("%v%v", s.urls["viewClass"].String(), ID)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
-		return class, err
+		return nil, err
 	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return class, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return class, err
+		return nil, err
 	}
 
 	csvs := htmlhelper.TablesToCSVs(string(data))
 	if len(csvs) != 2 {
-		return class, fmt.Errorf("no class tables found")
+		return nil, fmt.Errorf("no class tables found")
 	}
 
 	class.Category = strings.TrimRight(html.UnescapeString(csvs[0][1][1]), `(普通)`)
@@ -353,7 +390,7 @@ func (s *Session) getClass(ID string) (Class, error) {
 
 	// Skip if table 2 is empty.
 	if len(csvs[1]) != 2 {
-		return class, nil
+		return &class, nil
 	}
 
 	// Get teachers.
@@ -365,7 +402,7 @@ func (s *Session) getClass(ID string) (Class, error) {
 	// Get periods.
 	class.Periods = getPeriods(csvs[1][1][8])
 
-	return class, nil
+	return &class, nil
 }
 
 // Walk walks through the ming800.

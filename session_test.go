@@ -15,12 +15,12 @@ import (
 type MyProcessor struct {
 }
 
-func (p *MyProcessor) ClassHandler(class ming800.Class) error {
+func (p *MyProcessor) ClassHandler(class *ming800.Class) error {
 	log.Printf("class: %v", class)
 	return nil
 }
 
-func (p *MyProcessor) StudentHandler(class ming800.Class, student ming800.Student) error {
+func (p *MyProcessor) StudentHandler(class *ming800.Class, student *ming800.Student) error {
 	log.Printf("class: %v, student: %v", class, student)
 	return nil
 }
