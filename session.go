@@ -244,6 +244,11 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class *Class, pro
 	table := csvs[0]
 	nRow := len(table)
 
+	// Skip first row and check row number.
+	if nRow <= 1 {
+		return nil
+	}
+
 	concurrency := 30
 	sem := make(chan struct{}, concurrency)
 	// Make a buffered channel to store returned errors from goroutines.
