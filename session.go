@@ -253,6 +253,8 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class *Class, pro
 	sem := make(chan struct{}, concurrency)
 	// Make a buffered channel to store returned errors from goroutines.
 	chError := make(chan error, nRow-1)
+	// Make a buffered channel to store students.
+	chStudent := make(chan *Student, nRow-1)
 
 	for i := 1; i < nRow; i++ {
 		row := table[i]
@@ -264,11 +266,8 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class *Class, pro
 			defer func() { <-sem }()
 
 			student, err := s.getStudent(row)
-			if err == nil {
-				err = processor.StudentHandler(class, student)
-			}
-
 			chError <- err
+			chStudent <- student
 		}(i)
 	}
 
@@ -281,11 +280,20 @@ func (s *Session) walkStudentsOfClassOfOnePage(content string, class *Class, pro
 
 	// Close the error channel.
 	close(chError)
+	// Close the student channel.
+	close(chStudent)
 
 	// Check errors returned from goroutines.
 	for e := range chError {
 		if e != nil {
 			return fmt.Errorf("getStudent() or processor.StudentHandler() error: %v", e)
+		}
+	}
+
+	// Invoke student handler callback.
+	for student := range chStudent {
+		if err := processor.StudentHandler(class, student); err != nil {
+			return fmt.Errorf("StudentHandler() error: %v", err)
 		}
 	}
 
