@@ -395,7 +395,7 @@ func (s *Session) getClass(ID string) (*Class, error) {
 
 	csvs := htmlhelper.TablesToCSVs(string(data))
 	if len(csvs) != 2 {
-		return nil, fmt.Errorf("no class tables found")
+		return nil, fmt.Errorf("no class tables found. class ID: %v, csvs: %v", ID, csvs)
 	}
 
 	class.Category = strings.TrimRight(html.UnescapeString(csvs[0][1][1]), `(普通)`)
